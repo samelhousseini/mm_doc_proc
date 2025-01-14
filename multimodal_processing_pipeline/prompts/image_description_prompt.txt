@@ -1,0 +1,214 @@
+**PLEASE NOTE**: The file you receive is a **screenshot** of an entire PDF page. That page **may** contain text, headings, paragraphs, tables, and other visual elements. For this task:
+
+1. **Do NOT** summarize or describe the entire PDF page layout or text.  
+2. **Focus EXCLUSIVELY** on any **embedded photographs** or **embedded graphs** within that page screenshot.  
+3. If there are **no** embedded photographs or graphs, you **MUST** return an **empty** array (`"detected_graphs_or_photos": []`) in the final JSON.
+
+#### **A. Identifying and Describing a Photograph**
+
+- **Definition**: A **photograph** is any natural or illustrative image (e.g., real-life scenes, indoor settings, outdoor landscapes, product photos) that is **not** a graph or chart.  
+- **What to Include**:  
+  - **Visible Objects**: People, furniture, scenery, buildings, etc.  
+  - **Colors/Placement**: Relative sizes, positions, color schemes, special attributes.  
+  - **Possible Purpose**: Why might this photo be included? (e.g., highlight a landmark, illustrate an environment, show a product in use, etc.)
+
+#### **B. Identifying and Describing a Graph**
+
+- **Definition**: A **graph** is a visual data representation (bar chart, line chart, pie chart, flowchart, scatter plot, etc.).  
+  - **Regular text-based tables** with borders are **not** graphs unless they appear as a purely visual chart/infographic.  
+- **What to Include**:  
+  - **Type of Graph**: Bar chart, line graph, pie chart, etc.  
+  - **Graph Components**: Axes labels, data points, legends, scale.  
+  - **Trends/Patterns**: Rising or falling lines, largest slices, color-coding, relevant numeric values.  
+  - **Possible Purpose**: Compare categories, show growth over time, illustrate a workflow, etc.
+
+#### **C. Output Format Requirements**
+
+- Your final output **MUST** be **one** JSON object with a single key. You **MUST** use the below as JSON format:
+  
+  {{
+    "detected_graphs_or_photos": [
+      {{
+         "graph_or_photo_explanation": "Elaborate explanation of the photo or graph.",
+         "contextual_relevance": "Explains how this photo or graph is relevant to the rest of the page.",
+         "analysis": "Analysis of the graph or photo itself, with the page as context.",
+         "image_type": "Type of this item: either 'photo' or 'graph'"
+      }},
+      {{
+         "graph_or_photo_explanation": "Elaborate explanation of the photo or graph.",
+         "contextual_relevance": "Explains how this photo or graph is relevant to the rest of the page.",
+         "analysis": "Analysis of the graph or photo itself, with the page as context.",
+         "image_type": "Type of this item: either 'photo' or 'graph'"
+      }},
+      etc..
+    ]
+  }}
+  
+  - **`"detected_graphs_or_photos"`** is a **list**.  
+  - Each element in the list is an **object** with **three** keys:
+    1. `"graph_or_photo_explanation": str`  
+    2. `"contextual_relevance": str`  
+    3. `"analysis": str`
+
+- If **no** embedded photographs or graphs exist in the screenshot, output:
+  
+  {{
+    "detected_graphs_or_photos": []
+  }}
+  
+
+#### **D. Additional Instructions**
+
+1. **Ignore All Page Text**  
+   - We do **not** want a text summary or interpretation of the PDF page.  
+   - Describe **only** the identified photographs or graphs.
+
+2. **Be Thorough and Factual**  
+   - For photographs: note key details like color, setting, visible subjects or objects.  
+   - For graphs: note axes labels, data points, color usage, notable data patterns, numeric values (if visible).
+
+3. **No Overarching Page Summaries**  
+   - Avoid describing textual paragraphs, headings, or overall page layout.  
+   - Keep descriptions strictly about the photo/graph content.
+
+4. **Completeness**  
+   - If multiple photographs or graphs exist, **describe each** as a separate element in the array.  
+   - If none exist, return the empty array.
+
+5. **Analysis vs Contextual Relevance**  
+   - **`contextual_relevance`**: Briefly indicate how or why the photo or graph might tie into the document’s content. (e.g., “Likely included to show office culture.” or “Possibly illustrating sales trends.”)  
+   - **`analysis`**: Additional insights or commentary on the data, scene, or significant details (e.g., outlier values, unique setting, potential symbolic meaning, etc.).
+
+---
+
+## **5 Few-Shot Examples**
+
+Below are **5** sample outputs in the desired JSON format. Each showcases how to describe photographs vs. graphs. Notice how we unify them in a **single** `"detected_graphs_or_photos"` list.
+
+---
+
+### **Example 1: No Embedded Photographs or Graphs**
+
+
+{{
+  "detected_graphs_or_photos": []
+}}
+
+
+**Explanation**  
+- The screenshot contains no visuals beyond text, or nothing that qualifies as a photo/graph.  
+- Return an empty list.
+
+---
+
+### **Example 2: One Photograph, No Graphs**
+
+
+{{
+  "detected_graphs_or_photos": [
+    {{
+      "graph_or_photo_explanation": "This is a photograph showing a cozy café interior. Several wooden tables, each with small potted plants, are arranged neatly. Large windows let in natural light, and a chalkboard menu is visible behind the counter. The color palette is warm, featuring beige walls and dark-brown furniture.",
+      "contextual_relevance": "Possibly included to depict a typical meeting spot or casual workspace relevant to the document's topic.",
+      "analysis": "The photo emphasizes a relaxed atmosphere, possibly illustrating a social setting. The presence of a chalkboard menu suggests a casual café environment. Natural light might be important to highlight the space’s inviting feel.",
+      "image_type": "photo"
+    }}
+  ]
+}}
+
+
+**Explanation**  
+- Only one embedded photograph was found.  
+- Keys match `EmbeddedImage` schema: `"graph_or_photo_explanation"`, `"contextual_relevance"`, and `"analysis"`.
+
+---
+
+### **Example 3: One Graph, No Photographs**
+
+
+{{
+  "detected_graphs_or_photos": [
+    {{
+      "graph_or_photo_explanation": "This is a bar chart comparing three product categories (Electronics, Furniture, and Grocery) across two quarters, Q1 and Q2. The x-axis labels the quarters, while the y-axis shows 'Sales in Thousands USD'. Each category is represented by a color-coded bar, with individual values like 15, 20, 30, etc.",
+      "contextual_relevance": "Likely included to illustrate quarter-over-quarter performance for key product categories in the document’s sales discussion.",
+      "analysis": "Electronics appear to have the highest bar overall, with a notable jump between Q1 and Q2. Furniture shows moderate growth, while Grocery remains relatively stable. The chart visually emphasizes a significant revenue increase in Electronics from Q1 to Q2.",
+      "image_type": "graph"
+    }}
+  ]
+}}
+
+
+**Explanation**  
+- A single graph was identified.  
+- No photographs, so the array has only one object describing a bar chart.
+
+---
+
+### **Example 4: Multiple Photographs and Graphs**
+
+
+{{
+  "detected_graphs_or_photos": [
+    {{
+      "graph_or_photo_explanation": "This is a photograph of a conference room with a long table, eight chairs, and a large digital screen mounted on the wall. The flooring appears to be polished wood, and tall windows on one side reveal a city skyline.",
+      "contextual_relevance": "Might be used to show corporate infrastructure or meeting spaces relevant to the document’s content.",
+      "analysis": "The image highlights a modern, well-lit environment. The presence of the digital screen suggests a technologically equipped space, possibly signifying a boardroom or teamwork setting.",
+      "image_type": "photo"
+    }},
+    {{
+      "graph_or_photo_explanation": "This is a pie chart showing a distribution of customer feedback ratings. Slices are labeled from 1 star up to 5 stars. The largest slice, around 40%, corresponds to 4-star ratings, followed by about 30% at 5-star ratings.",
+      "contextual_relevance": "Likely included to demonstrate user satisfaction levels or feedback trends, tying into the broader context of customer research.",
+      "analysis": "The chart reveals that the majority of feedback is between 4 and 5 stars, indicating generally positive customer experiences. Fewer slices represent 1 or 2 stars, suggesting minimal negative feedback.",
+      "image_type": "graph"
+    }}
+  ]
+}}
+
+
+**Explanation**  
+- Two embedded items: one photograph and one graph.  
+- Each object stands alone with the required keys.
+
+---
+
+### **Example 5: Mixed Scenario – Three Items**
+
+
+{{
+  "detected_graphs_or_photos": [
+    {{
+      "graph_or_photo_explanation": "This is a photograph of a bustling outdoor market scene. Vendors in colorful tents display fresh produce. People are walking between stalls, and there is a backdrop of historic buildings under a clear blue sky.",
+      "contextual_relevance": "Potentially included to show local culture or tourism highlights in the document.",
+      "analysis": "The variety of colors draws attention to the lively atmosphere. The historic architecture in the background implies a culturally rich setting.",
+      "image_type": "photo"
+    }},
+    {{
+      "graph_or_photo_explanation": "This is a flowchart depicting a four-step project process: Planning, Development, Testing, and Launch. Each step is represented by a rectangular node, connected by arrows. A diamond-shaped decision node before the Testing phase indicates a 'Review' step.",
+      "contextual_relevance": "Likely supports a section in the document explaining a project lifecycle methodology.",
+      "analysis": "The flowchart emphasizes a linear progression with a built-in checkpoint at Review. Arrows clearly illustrate the path from one phase to the next, suggesting an iterative or gated process.",
+      "image_type": "graph"
+    }},
+    {{
+      "graph_or_photo_explanation": "This is another photograph, featuring a high-angle shot of a modern open-plan office. Rows of desks, each equipped with a laptop, are arranged under bright overhead lighting. A seating area with a small couch and coffee table is visible in one corner.",
+      "contextual_relevance": "Might be demonstrating workspace design or illustrating a segment about corporate culture.",
+      "analysis": "The layout suggests a collaborative environment. The presence of comfortable seating near desks points to a flexible, employee-friendly setup.",
+      "image_type": "photo"
+    }}
+  ]
+}}
+
+
+**Explanation**  
+- Three embedded items detected: two photographs (market scene, open-plan office) and one graph (flowchart).  
+- Each item is an object with the three required keys.
+
+---
+
+### **How These Examples Meet the Requirements**
+1. **Single JSON Object** with the key `"detected_graphs_or_photos"`.  
+2. If no images are found, the list is empty.  
+3. Each item in the list is an object containing:  
+   - **`graph_or_photo_explanation`** – The principal description of the visual content.  
+   - **`contextual_relevance`** – A short note on its likely purpose or connection to the document’s theme.  
+   - **`analysis`** – Any deeper commentary, patterns observed, or interpretive notes.
+
+Use this prompt whenever you need to parse a PDF page screenshot, focusing on **photographs** and **graphs** only, and output them in the **`EmbeddedImages`** style data structure.

@@ -1,0 +1,182 @@
+## **Prompt for Processing Embedded Tables within a PDF Page Screenshot**
+
+### **Objective**
+Extract **complete** and **accurate** information from **every** table found **inside** a screenshot of a PDF page, ensuring all data points and contextual insights are captured in a structured JSON format.
+
+---
+
+### **Prompt Text**
+
+**PLEASE NOTE**: The file you receive is a **screenshot** of an entire PDF page. That page may contain text, paragraphs, images, or other elements. However, for this task:
+
+1. **Do NOT** summarize or describe the entire PDF page’s text or layout.  
+2. **Focus EXCLUSIVELY** on tables (grid-like data structures) within the screenshot.  
+3. If **no** tables are detected, you **MUST** return an empty list in the final JSON output under `"detected_tables_detailed_markdown"`.
+
+You **MUST** follow the steps below for **each** table you find:
+
+#### 1. **Overall Table Purpose**
+- Describe **why** the table likely exists (e.g., presenting financial data, survey results, product comparisons, etc.).
+- Note **patterns** or **hierarchical structures** (e.g., subheadings, merged cells).
+- If the table is in the format of a graph:
+  a. **Definition**: A **graph** is a visual data representation (bar chart, line chart, pie chart, flowchart, scatter plot, etc.).  
+    * **Regular text-based tables** with borders are **not** graphs unless they appear as a purely visual chart/infographic.  
+  b. **What to Include**:  
+    * **Type of Graph**: Bar chart, line graph, pie chart, etc.  
+    * **Graph Components**: Axes labels, data points, legends, scale.  
+    * **Trends/Patterns**: Rising or falling lines, largest slices, color-coding, relevant numeric values.  
+    * **Possible Purpose**: Compare categories, show growth over time, illustrate a workflow, etc.
+
+#### 2. **Column-Level Analysis**
+- For **each column**:
+  - Identify **header name** (if any).
+  - Identify **data type** (text, number, date, etc.).
+  - State **purpose** (categorizing data, comparing values, summarizing results, etc.).
+- Mention **color-coding** or visual indicators in headers/cells if present.
+
+#### 3. **Row-Level Analysis**
+- Summarize data in each row or logical group of rows.
+- Call out **key trends, patterns, or outliers** (e.g., especially high/low values).
+- Note **aggregated/summary rows** (totals, averages) and their importance.
+
+#### 4. **Table Content in Markdown**
+- Convert the table to **Markdown**, ensuring **accurate** row/column alignment and headers.
+- If any cells are partially hidden or unclear, note that rather than guessing.
+
+#### 5. **Contextual Relevance**
+- Briefly describe **how** this table might be relevant to the broader document (e.g., supports a claim, compares data from prior page).  
+- **Do NOT** summarize text paragraphs—limit your scope to the table’s role.
+
+#### 6. **Multiple Tables**
+- If **multiple** tables are found, you **MUST** repeat the entire process **for each** table individually.
+
+#### 7. **Output Format Requirements**
+- The **final** output **MUST** conform to your data models:
+  - A **JSON** object with one key: `"detected_tables_detailed_markdown"`.
+  - The value for `"detected_tables_detailed_markdown"` is a **list** of **objects**, each matching the **`EmbeddedTable`** schema:
+    - **`markdown: str`** – The Markdown version of the table.
+    - **`contextual_relevance: str`** – A short note on how/why the table is contextually relevant.
+    - **`analysis: str`** – A descriptive analysis covering the table’s purpose, columns, rows, trends, etc.
+
+
+### **IMPORTANT**
+1. **EVERY EMBEDDED TABLE** in the screenshot **MUST** be **fully described**. You **MUST** use the below format:
+   {{
+   "detected_tables_detailed_markdown": [
+      {{
+         "markdown": "Markdown content of the table ```\n",
+         "contextual_relevance": "Explains how this table is relevant to the rest of the page.",
+         "analysis": "Analysis of the table itself, with the page as context."
+      }}
+   ]
+   }}
+
+2. If **no** tables exist, you **MUST** return an **empty array** in this final JSON structure. Do **NOT** generate entries like 'There is no table present in this document.'.
+   
+   {{
+     "detected_tables_detailed_markdown": []
+   }}
+   
+3. **Do NOT** produce **any** other output besides this single JSON dictionary.
+4. The final JSON must contain one key: `"detected_tables_detailed_markdown"`, whose value is an array of **strings**, each containing the detailed Markdown description (including analysis) of one table.
+
+
+---
+
+## **Few-Shot Examples**
+
+Below are **5** example outputs demonstrating how to structure your JSON to match `EmbeddedTables` and `EmbeddedTable`. Notice that each example returns a single JSON object with `"detected_tables_detailed_markdown"`—either an empty list or a list of table descriptions, each containing `markdown`, `contextual_relevance`, and `analysis`.
+
+---
+
+### **Example 1: No Tables Detected**
+
+{{
+  "detected_tables_detailed_markdown": []
+}}
+
+**Explanation**  
+- The screenshot has no grid-based data or tables.  
+- The list is empty, as required.
+
+---
+
+### **Example 2: Single Table, Basic Financial Data**
+
+{{
+  "detected_tables_detailed_markdown": [
+    {{
+      "markdown": "| Quarter | Revenue (USD k) | Expenses (USD k) |\n|---------|-----------------|------------------|\n| Q1      | 50              | 30               |\n| Q2      | 60              | 35               |\n| Q3      | 70              | 50               |\n| Q4      | 80              | 60               |\n",
+      "contextual_relevance": "Demonstrates quarterly financial performance; possibly supports an annual report discussion.",
+      "analysis": "Purpose: Summarizes revenue and expenses per quarter.\nColumn-Level: (1) 'Quarter' (text), (2) 'Revenue' (number), (3) 'Expenses' (number).\nRow-Level: Q1–Q4. Expenses spike in Q3 relative to prior quarters. Q4 shows highest revenue.\nPatterns: Consistent revenue growth each quarter. Could highlight financial stability."
+    }}
+  ]
+}}
+
+**Explanation**  
+- One table is present.  
+- `"markdown"` contains the table in Markdown format.  
+- `"analysis"` highlights columns/rows, outliers, and purpose.  
+- `"contextual_relevance"` suggests how this might tie into the bigger document.
+
+---
+
+### **Example 3: Two Tables (Product Comparison & Survey Results)**
+
+{{
+  "detected_tables_detailed_markdown": [
+    {{
+      "markdown": "| Model  | CPU         | RAM(GB) | Price(USD) |\n|--------|------------|---------|-----------|\n| A      | Intel i5    | 8       | 700       |\n| B      | Intel i7    | 16      | 950       |\n| C      | AMD Ryzen 5 | 8       | 650       |\n",
+      "contextual_relevance": "Likely included to compare laptop specifications for a tech-buying guide in the document.",
+      "analysis": "Purpose: Show different specs and prices across three laptop models.\nColumn-Level: 'Model', 'CPU', 'RAM', 'Price'.\nRow-Level: Model B is the most expensive, but highest CPU power and RAM.\nTrend: Consumer might choose Model B for performance, or Model C for lower cost."
+    }},
+    {{
+      "markdown": "| User ID | Rating | Comments             |\n|---------|-------|----------------------|\n| 101     | 5     | Excellent service    |\n| 102     | 4     | Very good            |\n| 103     | 2     | Needs improvement    |\n",
+      "contextual_relevance": "Could be from a customer feedback section, linking to the overall satisfaction analysis.",
+      "analysis": "Purpose: Display user ratings and brief comments.\nColumn-Level: 'User ID', 'Rating', 'Comments'.\nRow-Level: Notable outlier is a rating of 2 with negative feedback. Suggests possible service gap.\nPattern: Overall positive feedback with a single low rating."
+    }}
+  ]
+}}
+
+**Explanation**  
+- `"detected_tables_detailed_markdown"` is a list of two `EmbeddedTable` objects.  
+- Each object has `markdown`, `contextual_relevance`, and `analysis` keys.
+
+---
+
+### **Example 4: Complex Table with Summary Row**
+
+{{
+  "detected_tables_detailed_markdown": [
+    {{
+      "markdown": "| Region | Electronics (USD) | Furniture (USD) | Supplies (USD) | Total (USD) |\n|--------|-------------------|-----------------|----------------|-------------|\n| East   | 10,000            | 5,000           | 2,000          | 17,000      |\n| West   | 8,000             | 6,500           | 1,500          | 16,000      |\n| North  | 9,000             | 4,000           | 3,000          | 16,000      |\n| **All**| **27,000**        | **15,500**      | **6,500**      | **49,000**  |\n",
+      "contextual_relevance": "Likely part of a sales performance analysis referencing multiple geographic regions.",
+      "analysis": "Purpose: Break down sales by region, summing across three product categories.\nColumn-Level: 'Region', 'Electronics', 'Furniture', 'Supplies', 'Total'.\nRow-Level: East, West, North, plus a summary row. East has highest total at 17,000. The summary row calculates an overall total of 49,000.\nPattern: The data suggests relatively balanced performance among regions, with East having the highest figures."
+    }}
+  ]
+}}
+
+**Explanation**  
+- One table with a summary row.  
+- `"markdown"` shows columns for region, multiple categories, and totals.  
+- `"analysis"` identifies outliers, aggregates, and significance.
+
+---
+
+### **Example 5: Merged Header Cells and Project Timelines**
+
+{{
+  "detected_tables_detailed_markdown": [
+    {{
+      "markdown": "|          Project Phases           |\n| Phase     | Start Date | End Date   |\n|-----------|-----------|------------|\n| Planning  | Jan 10     | Jan 31     |\n| Execution | Feb 1      | Mar 15     |\n| Testing   | Mar 16     | Mar 31     |\n| Launch    | Apr 1      | Apr 5      |\n",
+      "contextual_relevance": "Likely related to a project plan or timeline described in the surrounding text.",
+      "analysis": "Purpose: Display phases of a project with start and end dates. The top row is a merged header cell reading 'Project Phases'.\nColumn-Level: 'Phase', 'Start Date', 'End Date'.\nRow-Level: Four phases. Dates indicate that Execution is the longest. Could highlight scheduling needs."
+    }}
+  ]
+}}
+
+**Explanation**  
+- The table has a **merged** top row used for a title or heading.  
+- `"markdown"` accurately represents each phase and date.  
+- `"analysis"` addresses column roles, row data, and any outliers.
+

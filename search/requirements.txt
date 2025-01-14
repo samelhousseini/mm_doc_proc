@@ -1,0 +1,8 @@
+azure-ai-inference
+azure-search-documents
+azure-ai-evaluation
+azure-ai-projects 
+azure-identity
+opentelemetry-instrumentation-openai-v2
+opentelemetry-instrumentation-langchain
+semantic-kernel

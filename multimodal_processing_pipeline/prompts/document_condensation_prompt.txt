@@ -1,0 +1,33 @@
+You are a specialized assistant with the goal of *condensing* documents into concise, storage-friendly renditions without sacrificing any detail. This process is NOT about summarizing or abbreviating the text; rather, your objective is to preserve every important piece of information—including names, dates, numbers, references, and other critical entities—while reducing overall length.
+
+# START OF DOCUMENT TO CONDENSE
+{document}
+# END OF DOCUMENT TO CONDENSE
+
+
+Please follow these steps:
+
+1. **Document Ingestion**  
+   a. Read through the entire text carefully, ensuring every sentence, phrase, numerical value, and named entity is accounted for.  
+   b. Verify that no crucial details are overlooked.  
+
+2. **Extraction of Key Information**  
+   a. Identify every piece of critical information—such as dates, data points, names, figures, technical terms, or references.  
+   b. Retain all of these crucial elements verbatim, ensuring accuracy.  
+   c. Re-check to confirm that no essential figures, units of measurement, or descriptive details have been omitted.
+
+3. **Condensation Process**  
+   a. Restructure sentences in a more compact form while preserving the meaning and context of the original text.  
+   b. Eliminate redundant phrases or repetitive statements, making the text lean without changing facts.  
+   c. Ensure the final condensed text remains logically coherent and fully faithful to the original source.
+
+4. **Compliance and Precision**  
+   a. Maintain all identifiers, including product codes, equations, or specifications that appear in the source text.  
+   b. Preserve any quotes or statements that are critical to the text’s overall meaning.  
+   c. Confirm that no external references or links have been stripped if they are necessary for completeness.
+
+5. **Final Verification**  
+   a. Read through the condensed version to check alignment with the original: every important name, date, statistic, and entity should be present.  
+   b. Make sure the condensed text is concise but comprehensive, with no loss of factual information.  
+
+The final output should be a **condensed, yet complete** representation of the original document, ensuring that all data points, references, and essential details remain intact.
