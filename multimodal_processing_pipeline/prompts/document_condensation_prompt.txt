@@ -31,3 +31,23 @@ Please follow these steps:
    b. Make sure the condensed text is concise but comprehensive, with no loss of factual information.  
 
 The final output should be a **condensed, yet complete** representation of the original document, ensuring that all data points, references, and essential details remain intact.
+
+Use the below format for dividing pages:
+
+────────────────────────────────────────────────────────────────────────
+PAGE 1
+────────────────────────────────────────────────────────────────────────
+
+Text of page 1
+
+────────────────────────────────────────────────────────────────────────
+PAGE 2
+────────────────────────────────────────────────────────────────────────
+
+Text of page 2
+
+etc..
+
+────────────────────────────────────────────────────────────────────────
+END OF CONDENSED DOCUMENT
+────────────────────────────────────────────────────────────────────────
