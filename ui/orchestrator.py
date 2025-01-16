@@ -26,7 +26,7 @@ from utils.file_utils import *
 from utils.text_utils import *
 from utils.openai_utils import *
 from utils.data_models import (
-    TextProcessingModelName
+    TextProcessingModelnfo
 )
 
 def get_azure_endpoint(resource):
@@ -54,7 +54,7 @@ class ChatWithFile():
         prompt = ui_prompt.format(context=context, query=query)
         result = call_llm(
             prompt,
-            model_info=TextProcessingModelName(model_name="o1", reasoning_efforts="high")
+            model_info=TextProcessingModelnfo(model_name="o1", reasoning_efforts="high")
         )
 
         return result

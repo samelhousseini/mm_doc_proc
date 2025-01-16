@@ -3,20 +3,30 @@ from typing import Optional, List, Literal
 from pathlib import Path
 
 
-class MulitmodalProcessingModelName(BaseModel):
+class MulitmodalProcessingModelInfo(BaseModel):
     """
     Information about the multimodal model name.
     """
-    model_name: Literal["gpt-4o", "o1"]
+    provider: Literal["azure", "openai"] = "azure"
+    model_name: Literal["gpt-4o", "o1"] = "gpt-4o"
     reasoning_efforts: Optional[Literal["low", "medium", "high"]] = "medium"    
 
 
-class TextProcessingModelName(BaseModel):
+class TextProcessingModelnfo(BaseModel):
     """
     Information about the multimodal model name.
     """
-    model_name: Literal["gpt-4o", "o1", "o1-mini"]
+    provider: Literal["azure", "openai"] = "azure"
+    model_name: Literal["gpt-4o", "o1", "o1-mini"] = "gpt-4o"
     reasoning_efforts: Optional[Literal["low", "medium", "high"]] = "medium"    
+
+
+class EmbeddingModelnfo(BaseModel):
+    """
+    Information about the multimodal model name.
+    """
+    provider: Literal["azure"] = "azure"
+    model_name: Literal["embedding"] = "text-embedding-3-large"
 
 
 class PDFMetadata(BaseModel):
@@ -45,7 +55,7 @@ class ExtractedImage(BaseModel):
     Information about images extracted from a page.
     """
     page_number: int
-    image_path: Path  # Path to the saved image file
+    image_path: str  # Path to the saved image file
     image_type: str
     description: Optional[str] = None  # GPT-generated description of the image
 
@@ -98,11 +108,12 @@ class PageContent(BaseModel):
     """
     page_number: int
     raw_text: ExtractedText
-    page_image_path: Path  # Path to the saved image file
+    page_image_path: str  # Path to the saved image file
     images: List[ExtractedImage]
     tables: List[ExtractedTable]
     combined_text: Optional[str] = None  # Final combined content for the page
     condensed_text: Optional[str] = None  # Condensed version of the text
+    condensed_text_vector: Optional[List[float]] = None  # Vector for the condensed text
 
 
 class DocumentContent(BaseModel):
@@ -113,3 +124,15 @@ class DocumentContent(BaseModel):
     pages: List[PageContent]  # List of processed page content
     full_text: Optional[str] = None  # Combined text from all pages
     condensed_full_text: Optional[str] = None  # Condensed version of the full text
+
+
+class DataUnit(BaseModel):
+    """
+    Data Unit for the AI Search resource.
+    """
+    metadata: PDFMetadata
+    page_number: int
+    page_image_path: str  # Path to the saved image file
+    unit_type: Literal["text", "image", "table"]
+    text: str
+    text_vector: Optional[List[float]] = None

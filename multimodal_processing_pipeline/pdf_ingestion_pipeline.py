@@ -1,7 +1,15 @@
 import os
 import fitz
+import re
+from typing import Union, List
 import shutil
+from collections import defaultdict
 from pathlib import Path
+
+import sys
+sys.path.append('..')
+
+
 from utils.data_models import (
     PDFMetadata,
     ExtractedText,
@@ -9,8 +17,9 @@ from utils.data_models import (
     ExtractedTable,
     PageContent,
     DocumentContent,
-    MulitmodalProcessingModelName, 
-    TextProcessingModelName
+    MulitmodalProcessingModelInfo, 
+    TextProcessingModelnfo,
+    DataUnit
 )
 from utils.file_utils import (
     write_to_file,
@@ -28,7 +37,7 @@ console = Console()
 
 class PDFIngestionPipeline:
 
-    def __init__(self, pdf_path: str, output_directory: str, multimodal_model: MulitmodalProcessingModelName = None, text_model: TextProcessingModelName = None):
+    def __init__(self, pdf_path: str, output_directory: str, multimodal_model: MulitmodalProcessingModelInfo = None, text_model: TextProcessingModelnfo = None):
         self.pdf_path = Path(pdf_path)
         self.output_directory = Path(output_directory)
         self.metadata = None
@@ -37,8 +46,8 @@ class PDFIngestionPipeline:
         self._prepare_directories()
         self._load_metadata()
 
-        self._mm_model = multimodal_model if multimodal_model else MulitmodalProcessingModelName(model_name="gpt-4o")
-        self._text_model = text_model if text_model else TextProcessingModelName(model_name="gpt-4o")
+        self._mm_model = multimodal_model if multimodal_model else MulitmodalProcessingModelInfo(model_name="gpt-4o")
+        self._text_model = text_model if text_model else TextProcessingModelnfo(model_name="gpt-4o")
 
 
     def _validate_paths(self):
@@ -59,8 +68,8 @@ class PDFIngestionPipeline:
         total_pages = fitz.open(self.pdf_path).page_count
         self.metadata = PDFMetadata(
             document_id=document_id,
-            document_path=self.pdf_path,
-            filename=self.pdf_path.name,
+            document_path=str(self.pdf_path),
+            filename=str(self.pdf_path.name),
             total_pages=total_pages,
             output_directory=self.output_directory
         )
@@ -108,7 +117,7 @@ class PDFIngestionPipeline:
         if image_results.detected_graphs_or_photos:
             for i, img in enumerate(image_results.detected_graphs_or_photos):
                 text_filename = os.path.join(
-                    self.output_directory, "images", f"page_{page_number}_image_{i+1}.txt"
+                    self.output_directory, "images", f"page_{page_number}_{img.image_type}_{i+1}.txt"
                 )
 
                 full_image = (
@@ -124,7 +133,7 @@ class PDFIngestionPipeline:
                 images.append(
                     ExtractedImage(
                         page_number=page_number,
-                        image_path=page_image_path,
+                        image_path=str(page_image_path),
                         image_type=img.image_type,  # or 'img.type'
                         description=full_image
                     )
@@ -226,7 +235,7 @@ class PDFIngestionPipeline:
         page_content = PageContent(
             page_number=page_number,
             raw_text=extracted_text,
-            page_image_path=page_image_path,
+            page_image_path=str(page_image_path),
             images=images,
             tables=tables,
             combined_text=combined_text
@@ -294,3 +303,249 @@ class PDFIngestionPipeline:
         condensed_path = os.path.join(self.output_directory, "combined", f"page_{page_content.page_number}_condensed.md")
         write_to_file(condensed_text, condensed_path, mode="w")
         print(f"Page {page_content.page_number} condensed text saved at: {condensed_path}")
+
+
+    @staticmethod
+    def load_document_content_from_folder(folder_path: Union[str, Path]) -> DocumentContent:
+        """
+        Reconstruct a DocumentContent instance by reading the subfolders/files
+        created during PDF ingestion (text/, images/, tables/, combined/, etc.).
+        
+        This version parses the new filename pattern for images:
+          'page_{page_number}_{image_type}_{i+1}.txt'
+        to preserve the actual image_type (e.g., 'graph' or 'photo') in ExtractedImage.
+        
+        :param folder_path: The path to the parent folder containing the
+                            'text', 'images', 'tables', 'combined' subfolders.
+        :return: A DocumentContent instance with metadata and pages re-populated.
+        """
+        folder_path = Path(folder_path)
+
+        # -----------------------------
+        # 1) Identify existing page nums
+        # -----------------------------
+        text_dir = folder_path / "text"
+        text_files = sorted(text_dir.glob("page_*.txt"))
+
+        # "page_1.txt" -> page=1, etc.
+        page_numbers = []
+        for tf in text_files:
+            match = re.search(r"page_(\d+)\.txt", tf.name)
+            if match:
+                page_numbers.append(int(match.group(1)))
+        page_numbers.sort()
+
+        # ------------------------------
+        # 2) Reconstruct top-level metadata
+        # ------------------------------
+        # If you stored real metadata, load that instead. For now, we approximate:
+        document_id = folder_path.name  # or parse from a known metadata file
+        total_pages = len(page_numbers)
+        pdf_fake_path = folder_path / f"{document_id}.pdf"  # fallback guess
+        metadata = PDFMetadata(
+            document_id=document_id,
+            document_path=pdf_fake_path,
+            filename=pdf_fake_path.name,
+            total_pages=total_pages,
+            output_directory=folder_path
+        )
+
+        # --------------------------------------------------
+        # 3) Read the "text_twin.md" and "condensed_text.md"
+        # --------------------------------------------------
+        combined_dir = folder_path / "combined"
+        full_text_path = combined_dir / "text_twin.md"
+        condensed_text_path = combined_dir / "condensed_text.md"
+
+        full_text = full_text_path.read_text(encoding="utf-8") if full_text_path.is_file() else None
+        condensed_full_text = condensed_text_path.read_text(encoding="utf-8") if condensed_text_path.is_file() else None
+
+        # -----------------------------------------
+        # 4) Collect info for embedded IMAGES & PAGE PNG
+        # -----------------------------------------
+        images_dir = folder_path / "images"
+        # We'll parse filenames like "page_2_photo_1.txt", "page_3_graph_2.txt", etc.
+        # Then group them by (page_number) so we can attach them later to each PageContent.
+        page_to_images = defaultdict(list)
+
+        for img_desc_file in images_dir.glob("page_*_*.txt"):
+            # e.g. "page_3_graph_1.txt" => page_num=3, image_type='graph', i=1
+            match = re.match(r"page_(\d+)_(\w+)_(\d+)\.txt", img_desc_file.name)
+            if not match:
+                continue
+            page_num_str, image_type_str, idx_str = match.groups()
+            page_num = int(page_num_str)
+
+            description = img_desc_file.read_text(encoding="utf-8")
+
+            # The main page image is presumably "page_{page_num}.png"
+            page_image_path = images_dir / f"page_{page_num}.png"
+            if not page_image_path.is_file():
+                # Possibly it doesn't exist; we'll just store an empty Path
+                page_image_path = Path("")
+
+            extracted_image = ExtractedImage(
+                page_number=page_num,
+                image_path=str(page_image_path),
+                image_type=image_type_str,      # from filename
+                description=description
+            )
+            page_to_images[page_num].append(extracted_image)
+
+        # --------------------------------------
+        # 5) Collect info for TABLES (unchanged)
+        # --------------------------------------
+        tables_dir = folder_path / "tables"
+        # We'll keep the old naming scheme: "page_{n}_table_{i}.txt"
+        page_to_tables = defaultdict(list)
+
+        for tbl_file in tables_dir.glob("page_*_table_*.txt"):
+            match = re.match(r"page_(\d+)_table_(\d+)\.txt", tbl_file.name)
+            if not match:
+                continue
+            page_num_str, tbl_idx_str = match.groups()
+            page_num = int(page_num_str)
+
+            table_text = tbl_file.read_text(encoding="utf-8")
+            # The pipeline lumps everything (markdown + summary) into one text file,
+            # so we store it all in table_content
+            extracted_table = ExtractedTable(
+                page_number=page_num,
+                table_content=table_text,
+                summary=None
+            )
+            page_to_tables[page_num].append(extracted_table)
+
+        # --------------------------------------------
+        # 6) Now reconstruct each PageContent
+        # --------------------------------------------
+        pages: List[PageContent] = []
+
+        for page_num in page_numbers:
+            # Processed text from "text/page_{page_num}.txt"
+            processed_text_file = text_dir / f"page_{page_num}.txt"
+            processed_text = processed_text_file.read_text(encoding="utf-8") if processed_text_file.is_file() else None
+
+            # Rebuild the "raw_text" (we only have processed text, so raw_text=None)
+            extracted_text = ExtractedText(
+                page_number=page_num,
+                text=None,  
+                processed_text=processed_text
+            )
+
+            # The main page image: "images/page_{page_num}.png"
+            page_image_path = images_dir / f"page_{page_num}.png"
+            if not page_image_path.is_file():
+                page_image_path = Path("")
+
+            # Grab the images & tables from our dictionaries
+            images_for_page = page_to_images.get(page_num, [])
+            tables_for_page = page_to_tables.get(page_num, [])
+
+            # Combined text: "combined/page_{page_num}_twin.txt"
+            combined_file = combined_dir / f"page_{page_num}_twin.txt"
+            combined_text = combined_file.read_text(encoding="utf-8") if combined_file.is_file() else None
+
+            # Condensed text: "combined/page_{page_num}_condensed.md"
+            condensed_file = combined_dir / f"page_{page_num}_condensed.md"
+            condensed_text = condensed_file.read_text(encoding="utf-8") if condensed_file.is_file() else None
+
+            page_content = PageContent(
+                page_number=page_num,
+                raw_text=extracted_text,
+                page_image_path=str(page_image_path),
+                images=images_for_page,
+                tables=tables_for_page,
+                combined_text=combined_text,
+                condensed_text=condensed_text
+            )
+            pages.append(page_content)
+
+        # -------------------------------------------------
+        # 7) Build final DocumentContent and return it
+        # -------------------------------------------------
+        doc_content = DocumentContent(
+            metadata=metadata,
+            pages=pages,
+            full_text=full_text,
+            condensed_full_text=condensed_full_text
+        )
+
+        return doc_content
+
+
+    @staticmethod
+    def document_content_to_data_units(doc_content: DocumentContent) -> List[DataUnit]:
+        """
+        Given a DocumentContent, generate a list of DataUnit entries.
+        
+        Rules:
+          - For each page, create one DataUnit containing the page's processed_text.
+          - For each image on that page, create a DataUnit with the image's description.
+          - For each table on that page, create a DataUnit with the table's content.
+        """
+        data_units: List[DataUnit] = []
+
+        # Metadata is the same for the entire DocumentContent
+        metadata = doc_content.metadata
+
+        for page in doc_content.pages:
+            # 1) The main text unit (processed_text from raw_text)
+            page_text = page.raw_text.processed_text or ""
+            if page_text.strip():
+                data_units.append(
+                    DataUnit(
+                        metadata=metadata,
+                        page_number=page.page_number,
+                        page_image_path=str(page.page_image_path),
+                        unit_type="text",
+                        text=page_text,
+                        # e.g. text_vector or condensed_text_vector if you like
+                        text_vector=None
+                    )
+                )
+
+            # 2) Each image's description
+            for image in page.images:
+                if image.description and image.description.strip():
+                    data_units.append(
+                        DataUnit(
+                            metadata=metadata,
+                            page_number=page.page_number,
+                            page_image_path=str(image.image_path),
+                            unit_type="image",
+                            text=image.description,
+                            text_vector=None
+                        )
+                    )
+
+            # 3) Each table's content
+            for table in page.tables:
+                # Combine table_content & summary if desired, or just use table_content
+                table_text = table.table_content or ""
+                if table_text.strip():
+                    data_units.append(
+                        DataUnit(
+                            metadata=metadata,
+                            page_number=page.page_number,
+                            page_image_path=str(page.page_image_path),
+                            unit_type="table",
+                            text=table_text,
+                            text_vector=None
+                        )
+                    )
+
+        return data_units
+
+    @staticmethod
+    def load_data_units_from_folder(folder_path: Union[str, Path]) -> List[DataUnit]:
+        """
+        Load a DocumentContent from the given folder path, then convert it into DataUnits
+        by calling 'document_content_to_data_units'.
+        """
+        # 1) Reconstruct the DocumentContent using the pipeline's loader method
+        doc_content = PDFIngestionPipeline.load_document_content_from_folder(folder_path)
+
+        # 2) Convert to DataUnits
+        data_units = PDFIngestionPipeline.document_content_to_data_units(doc_content)
+        return data_units
