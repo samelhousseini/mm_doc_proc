@@ -6,10 +6,69 @@ import logging
 import base64
 from PIL import Image
 from datetime import datetime, timedelta
-from env_vars import *
 
 
+def locate_prompt(prompt_name, module_directory):
+    """
+    Locates a prompt file in the prompts directory.
 
+    Args:
+        prompt_name (str): The name of the prompt file.
+
+    Returns:
+        str: The full path to the prompt file.
+    """
+    prompt_path = os.path.join(module_directory, 'multimodal_processing_pipeline', 'prompts', prompt_name)
+    if os.path.exists(prompt_path): return prompt_path
+
+    prompt_path = os.path.join('multimodal_processing_pipeline', 'prompts', prompt_name)
+    if os.path.exists(prompt_path): return prompt_path
+
+    prompt_path = os.path.join('prompts', prompt_name) 
+    if os.path.exists(prompt_path): return prompt_path
+
+    prompts_directory = locate_directory('prompts')
+    if prompts_directory:
+        prompt_path = os.path.join(prompts_directory, prompt_name)
+        if os.path.exists(prompt_path): return prompt_path
+        
+    return os.path.join(module_directory, 'prompts', prompt_name)
+
+
+def locate_directory(target_dir):
+    if os.path.exists(target_dir):
+        return os.path.abspath(target_dir).replace("\\", "/").replace("//", "/")
+
+    # Helper function to search for directory upwards
+    def search_upwards(start_path, target_dir):
+        current_path = start_path
+        while current_path != os.path.dirname(current_path):  # Continue until reaching the root directory
+            if target_dir in os.listdir(current_path):
+                return os.path.join(current_path, os.path.basename(target_dir))
+            current_path = os.path.dirname(current_path)  # Move up one directory
+        return None
+    
+    # Helper function to search for directory downwards
+    def search_downwards(start_path, target_dir):
+        for root, dirs, _ in os.walk(start_path):
+            if target_dir in dirs:
+                return os.path.join(root, os.path.basename(target_dir))
+        return None
+
+    # Step 0: Check if the current directory is already the target directory
+    if os.path.basename(os.getcwd()) == os.path.basename(target_dir):
+        print(f"Already in the target directory: {os.getcwd()}")
+        return target_dir
+
+    # Step 1: Try finding the directory by searching upwards
+    start_path = os.getcwd()
+    target_path = search_upwards(start_path, target_dir)
+    
+    # Step 2: If not found upwards, try finding it by searching downwards
+    if not target_path:
+        target_path = search_downwards(start_path, target_dir)
+
+    return os.path.abspath(target_dir).replace("\\", "/").replace("//", "/")
 
 
 
@@ -102,21 +161,20 @@ def replace_extension(asset_path, new_extension):
 # 2. Check if the group policy setting is configured to enable long path names. Open the Group Policy Editor (gpedit.msc) and navigate to Local Computer Policy > Computer Configuration > Administrative Templates > System > Filesystem. Look for the "Enable Win32 long paths" policy and make sure it is set to "Enabled".
 def write_to_file(text, text_filename, mode = 'a'):
     try:
-        text_filename = text_filename.replace("\\", "/")
-        with open(text_filename, mode, encoding='utf-8') as file:
-            file.write(text)
-
         print(f"Writing file to full path: {os.path.abspath(text_filename)}")
+        if isinstance(text_filename, str): text_filename = text_filename.replace("\\", "/")
+        with open(text_filename, mode, encoding='utf-8') as file:
+            file.write(text)        
     except Exception as e:
         print(f"SERIOUS ERROR: Error writing text to file: {e}")
 
 def read_asset_file(text_filename):
     try:
-        text_filename = text_filename.replace("\\", "/")
+        print(f"Reading file from path: {os.path.abspath(text_filename)}")
+        if isinstance(text_filename, str): text_filename = text_filename.replace("\\", "/")
         with open(text_filename, 'r', encoding='utf-8') as file:
             text = file.read()
         status = True
-        print(f"Reading file from path: {os.path.abspath(text_filename)}")
     except Exception as e:
         text = ""
         print(f"WARNING ONLY - reading text file: {e}")
@@ -181,3 +239,58 @@ def find_all_files_in_project_root(filename_pattern="*", extension_pattern="*"):
     matching_files = list(project_root.rglob(search_pattern))
 
     return matching_files
+
+
+import uuid
+import hashlib
+
+def generate_random_uuid():
+    return str(uuid.uuid4())
+
+
+def generate_uuid_from_string(input_string):
+    # Create a SHA-1 hash of the input string
+    hash_object = hashlib.sha1(input_string.encode())
+    # Use the first 16 bytes of the hash to create a UUID
+    return str(uuid.UUID(bytes=hash_object.digest()[:16]))
+
+
+def get_file_md5(file_name):
+    with open(file_name, 'rb') as file_obj:
+        file_contents = file_obj.read()
+        md5 = hashlib.md5(file_contents).hexdigest()
+        return str(md5)
+    
+
+import os
+import shutil
+
+def copy_file(src_file_path: str, dst_folder_path: str) -> str:
+    # Ensure the source file exists
+    if not os.path.isfile(src_file_path):
+        raise FileNotFoundError(f"Source file not found: {src_file_path}")
+
+    # Ensure the destination folder exists or create it if it doesn't
+    os.makedirs(dst_folder_path, exist_ok=True)
+
+    # Extract the file name from the source file path
+    file_name = os.path.basename(src_file_path)
+
+    # Construct the destination file path
+    dst_file_path = os.path.join(dst_folder_path, file_name)
+
+    # Copy the file (metadata and permissions) to the destination path
+    shutil.copy2(src_file_path, dst_file_path)
+
+    return dst_file_path
+
+
+import json
+
+def write_json_file(data: dict, file_path: str) -> None:
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def read_json_file(file_path: str):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)

@@ -179,3 +179,7 @@ test.ipynb
 test*.ipynb
 
 .chainlit/
+processed/
+env_vars.py
+
+old_*.py

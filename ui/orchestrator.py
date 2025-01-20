@@ -25,7 +25,7 @@ from IPython.display import Markdown, display
 from utils.file_utils import * 
 from utils.text_utils import *
 from utils.openai_utils import *
-from utils.data_models import (
+from multimodal_processing_pipeline.data_models import (
     TextProcessingModelnfo
 )
 

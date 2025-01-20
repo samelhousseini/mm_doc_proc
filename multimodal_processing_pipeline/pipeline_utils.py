@@ -1,10 +1,18 @@
 import os
 import base64
 from PIL import Image
-from utils.file_utils import write_to_file, replace_extension, read_asset_file
+from utils.file_utils import write_to_file, replace_extension, read_asset_file, locate_prompt
 from utils.text_utils import clean_up_text, extract_markdown, extract_code
 from utils.openai_utils import call_llm, call_llm_structured_outputs
-from utils.data_models import EmbeddedImages, EmbeddedTables
+from data_models import EmbeddedImages, EmbeddedTables
+
+
+module_directory = os.path.dirname(os.path.abspath(__file__))
+
+
+
+def locate_ingestion_prompt(prompt_name, module_directory):
+    return locate_prompt(prompt_name, module_directory)
 
 
 
@@ -45,7 +53,8 @@ def analyze_images(image_path, model_info=None):
         str: Analysis response.
         str: Generated text filename.
     """
-    image_prompt = read_asset_file('multimodal_processing_pipeline/prompts/image_description_prompt.txt')[0]
+    prompt_path = locate_ingestion_prompt('image_description_prompt.txt')
+    image_prompt = read_asset_file(prompt_path)[0]
     image_path = convert_png_to_jpg(image_path)  # Ensure the image is in JPG format
 
     response = call_llm_structured_outputs(
@@ -70,7 +79,8 @@ def analyze_tables(image_path, model_info=None):
         str: Table analysis response.
         str: Generated Markdown filename.
     """
-    table_prompt = read_asset_file('multimodal_processing_pipeline/prompts/table_description_prompt.txt')[0]
+    prompt_path = locate_ingestion_prompt('table_description_prompt.txt')
+    table_prompt = read_asset_file(prompt_path)[0]
     image_path = convert_png_to_jpg(image_path)  # Ensure the image is in JPG format
 
     response = call_llm_structured_outputs(
@@ -95,7 +105,9 @@ def process_text(text, model_info=None):
         str: Processed text.
     """
 
-    process_text_prompt = read_asset_file('multimodal_processing_pipeline/prompts/process_extracted_text_prompt.txt')[0]
+    prompt_path = locate_ingestion_prompt('process_extracted_text_prompt.txt')
+    process_text_prompt = read_asset_file(prompt_path)[0]
+
     prompt = process_text_prompt.format(text=text)
 
     response = call_llm(
@@ -117,9 +129,33 @@ def condense_text(text, model_info=None):
     Returns:
         str: Condensed text.
     """
-
-    condense_text_prompt = read_asset_file('multimodal_processing_pipeline/prompts/document_condensation_prompt.txt')[0]
+    prompt_path = locate_ingestion_prompt('document_condensation_prompt.txt')
+    condense_text_prompt = read_asset_file(prompt_path)[0]
     prompt = condense_text_prompt.format(document=text)
+
+    response = call_llm(
+        prompt,
+        model_info=model_info
+    )
+
+    return response
+
+
+
+def generate_table_of_contents(text, model_info=None):
+    """
+    Generates a table of contents.
+
+    Args:
+        text (str): The input text to use.
+        model_info (dict): Information about the model configuration.
+
+    Returns:
+        str: Table of contents.
+    """
+    prompt_path = locate_ingestion_prompt('table_of_contents_prompt.txt')
+    toc_text_prompt = read_asset_file(prompt_path)[0]
+    prompt = toc_text_prompt.format(document=text)
 
     response = call_llm(
         prompt,

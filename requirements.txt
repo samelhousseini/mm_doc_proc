@@ -11,3 +11,4 @@ json-repair
 tiktoken
 tenacity
 rich
+pytest

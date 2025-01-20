@@ -11,6 +11,10 @@ from typing import (
     Type,
     Union,
 )
+
+from typing import get_origin, get_args, Union
+import datetime
+
 from pydantic import BaseModel
 
 # Azure Cognitive Search imports
@@ -31,8 +35,9 @@ from azure.search.documents.indexes.models import (
     SemanticPrioritizedFields,
     SemanticField,
     SimpleField,
-    SearchFieldDataType,
-    SearchableField
+    SearchField,
+    SearchableField,
+    ComplexField
 )
 from azure.search.documents import SearchIndexingBufferedSender
 from azure.search.documents.models import (
@@ -45,262 +50,13 @@ import sys
 sys.path.append("../")
 
 from utils.openai_utils import *
-from utils.data_models import EmbeddingModelnfo
+from multimodal_processing_pipeline.data_models import *
+from multimodal_processing_pipeline.pdf_ingestion_pipeline import *
+from search_data_models import *
+from search_helpers import *
 
-
-###############################################################################
-# DYNAMIC INDEX BUILDER
-###############################################################################
-def is_pydantic_model(type_hint: Any) -> bool:
-    """
-    Check if a given type hint is a subclass of pydantic.BaseModel.
-    """
-    return isinstance(type_hint, type) and issubclass(type_hint, BaseModel)
-
-def map_primitive_to_search_data_type(type_hint: Any) -> SearchFieldDataType:
-    """
-    Map Python primitive/standard types to Azure Cognitive Search data types.
-    Extend or adjust as needed for your application.
-    """
-    from typing import get_origin, get_args
-    import datetime
-
-    if type_hint == str:
-        return SearchFieldDataType.String
-    if type_hint == int:
-        return SearchFieldDataType.Int64  # or Int32
-    if type_hint == float:
-        return SearchFieldDataType.Double
-    if type_hint == bool:
-        return SearchFieldDataType.Boolean
-    if type_hint in (datetime.date, datetime.datetime):
-        return SearchFieldDataType.DateTimeOffset
-    # Fallback
-    return SearchFieldDataType.String
-
-
-
-def build_search_fields_for_model(
-    model: Type[BaseModel],
-    key_field_name: Optional[str] = None,
-    is_in_collection: bool = False,
-    embedding_dimensions: int = 1536,
-    vector_profile_name: str = "myHnswProfile"
-):
-    """
-    Recursively build a hierarchical Azure Cognitive Search schema from a Pydantic model.
-
-    - Nested models -> ComplexField with subfields
-    - List of nested models -> ComplexField(collection=True)
-    - List of primitives -> either SimpleField or SearchableField(collection=True)
-    - List of float -> interpret as a Vector field (SearchField with vector config)
-    - If 'key_field_name' matches the field, we mark it as the key (top-level only).
-    - If 'is_in_collection' is True, we disable sorting to avoid multi-valued sorting errors.
-    - We also disable sorting on vector fields.
-    """
-    from azure.search.documents.indexes.models import (
-        ComplexField,
-        SimpleField,
-        SearchableField,
-        SearchField,
-        SearchFieldDataType
-    )
-    from typing import get_origin, get_args, Union
-    import datetime
-
-    def is_vector_field(outer_type: Any) -> bool:
-        """
-        Return True if the type is List[float] or Optional[List[float]] or similar.
-        """
-        # For example, if outer_type is List[float], or Union[List[float], None], etc.
-        if get_origin(outer_type) in (list, List):
-            (inner_type,) = get_args(outer_type)
-            return inner_type == float
-        if get_origin(outer_type) is Union:
-            union_args = get_args(outer_type)
-            # e.g. Union[List[float], None]
-            # We'll check if there's exactly 1 non-None arg which is List[float].
-            non_none_args = [arg for arg in union_args if arg is not type(None)]
-            if len(non_none_args) == 1 and get_origin(non_none_args[0]) in (list, List):
-                (inner_type,) = get_args(non_none_args[0])
-                return inner_type == float
-        return False
-
-    fields = []
-
-    for field_name, model_field in model.__fields__.items():
-        use_as_key = (field_name == key_field_name)
-        outer_type = model_field.annotation  # For Pydantic 2.x
-
-        # 1) Check if it's a vector field (list of floats)
-        if is_vector_field(outer_type):
-            # This field is a vector. We'll define a SearchField with vector properties.
-            fields.append(
-                SearchField(
-                    name=field_name,
-                    type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
-                    searchable=True,   # vector fields must be 'searchable=True'
-                    filterable=False,
-                    facetable=False,
-                    sortable=False,    # no sorting on a vector
-                    key=use_as_key,
-                    vector_search_dimensions=embedding_dimensions,
-                    vector_search_profile_name=vector_profile_name
-                )
-            )
-            continue
-
-        # 2) Otherwise, check if it's a generic list
-        origin = get_origin(outer_type)
-        if origin in (list, List):
-            (inner_type,) = get_args(outer_type)
-
-            # If the inner type is another Pydantic model => Complex collection
-            if is_pydantic_model(inner_type):
-                subfields = build_search_fields_for_model(
-                    inner_type,
-                    key_field_name=None,
-                    is_in_collection=True,
-                    embedding_dimensions=embedding_dimensions,
-                    vector_profile_name=vector_profile_name
-                )
-                fields.append(
-                    ComplexField(
-                        name=field_name,
-                        fields=subfields,
-                        collection=True
-                    )
-                )
-            else:
-                # It's a list of primitives
-                data_type = map_primitive_to_search_data_type(inner_type)
-                if data_type == SearchFieldDataType.String:
-                    fields.append(
-                        SearchableField(
-                            name=field_name,
-                            type=data_type,
-                            collection=True,
-                            searchable=True,
-                            filterable=True,
-                            facetable=False,
-                            sortable=False,  # multi-valued => no sorting
-                            key=use_as_key
-                        )
-                    )
-                else:
-                    fields.append(
-                        SimpleField(
-                            name=field_name,
-                            type=data_type,
-                            collection=True,
-                            filterable=True,
-                            facetable=True,
-                            sortable=False,  # multi-valued => no sorting
-                            key=use_as_key
-                        )
-                    )
-            continue
-
-        # 3) If it's a nested Pydantic model (single object)
-        if is_pydantic_model(outer_type):
-            subfields = build_search_fields_for_model(
-                outer_type,
-                key_field_name=None,
-                is_in_collection=is_in_collection,
-                embedding_dimensions=embedding_dimensions,
-                vector_profile_name=vector_profile_name
-            )
-            fields.append(
-                ComplexField(
-                    name=field_name,
-                    fields=subfields,
-                    collection=False
-                )
-            )
-            continue
-
-        # 4) Otherwise, possibly a primitive or optional
-        if get_origin(outer_type) is Union:
-            union_args = get_args(outer_type)
-            non_none_args = [arg for arg in union_args if arg is not type(None)]
-            chosen_type = non_none_args[0] if non_none_args else str
-        else:
-            chosen_type = outer_type
-
-        data_type = map_primitive_to_search_data_type(chosen_type)
-
-        if data_type == SearchFieldDataType.String:
-            fields.append(
-                SearchableField(
-                    name=field_name,
-                    type=data_type,
-                    searchable=True,
-                    filterable=True,
-                    facetable=False,
-                    sortable=(False if is_in_collection else True),
-                    key=use_as_key
-                )
-            )
-        else:
-            fields.append(
-                SimpleField(
-                    name=field_name,
-                    type=data_type,
-                    filterable=True,
-                    facetable=True,
-                    sortable=(False if is_in_collection else True),
-                    key=use_as_key
-                )
-            )
-
-    return fields
-
-
-
-def build_configurations():
-    vector_search = VectorSearch(
-        algorithms=[
-            HnswAlgorithmConfiguration(
-                name="myHnsw"
-            )
-        ],
-        profiles=[
-            VectorSearchProfile(
-                name="myHnswProfile",
-                algorithm_configuration_name="myHnsw",
-                vectorizer_name="myVectorizer"
-            )
-        ],
-        vectorizers=[
-            AzureOpenAIVectorizer(
-                # The name must match the profile above
-                vectorizer_name="myVectorizer",
-                # Provide your Azure OpenAI settings (model, key, etc.) here:
-                parameters=AzureOpenAIVectorizerParameters(
-                    # Example placeholders. Replace with your real config:
-                    resource_url=get_azure_endpoint(azure_embedding_model_info["RESOURCE"]),
-                    deployment_name=azure_embedding_model_info["MODEL"],
-                    model_name=azure_embedding_model_info["MODEL"],
-                    api_key=azure_embedding_model_info["KEY"],
-                )
-            )
-        ]
-    )
-
-    semantic_config = SemanticConfiguration(
-        name="my-semantic-config",
-        prioritized_fields=SemanticPrioritizedFields(
-            title_field=SemanticField(field_name="condensed_text"),
-            content_fields=[
-                SemanticField(field_name="condensed_text"),
-            ],
-            keywords_fields=[]
-        )
-    )
-    semantic_search = SemanticSearch(configurations=[semantic_config])
-
-    return vector_search, semantic_search
-
+from multiprocessing.dummy import Pool as ThreadPool
+pool = ThreadPool(25)
 
 
 
@@ -321,7 +77,8 @@ class DynamicAzureIndexBuilder:
         endpoint: str,
         api_key: str,
         index_name: str,
-        embedding_model_info: EmbeddingModelnfo = EmbeddingModelnfo()
+        embedding_model_info: EmbeddingModelnfo,
+        vector_profile_name: str = "myHnswProfile"
     ):
         """
         :param endpoint: Your Azure Cognitive Search endpoint (e.g. https://<NAME>.search.windows.net)
@@ -331,7 +88,8 @@ class DynamicAzureIndexBuilder:
         self.endpoint = endpoint
         self.api_key = api_key
         self.index_name = index_name.lower()
-
+        self.embedding_model_info = embedding_model_info
+        self.vector_profile_name = vector_profile_name
         self.key_field_name = None
 
         # Clients
@@ -345,10 +103,19 @@ class DynamicAzureIndexBuilder:
             credential=AzureKeyCredential(api_key)
         )
 
+        self.search_clients = [SearchClient(
+            endpoint=endpoint,
+            index_name=self.index_name,
+            credential=AzureKeyCredential(api_key)
+        ) for _ in range(25)]
+
     def build_index(
         self,
         model: Type[BaseModel],
-        key_field_name: Optional[str] = None
+        key_field_name: Optional[str] = None,
+        vector_search: Optional[VectorSearch] = None,
+        semantic_search: Optional[SemanticSearch] = None,
+        vector_profile_index: Optional[int] = 0
     ) -> SearchIndex:
         """
         Build a SearchIndex object from the given Pydantic model, optionally 
@@ -362,8 +129,7 @@ class DynamicAzureIndexBuilder:
         :param vector_search: Optional VectorSearch configuration (Hnsw, etc.)
         :param semantic_search: Optional SemanticSearch configuration
         """
-        
-        vector_search, semantic_search = build_configurations()
+       
 
         # Decide final key field
         if not key_field_name:
@@ -384,8 +150,8 @@ class DynamicAzureIndexBuilder:
             model,
             key_field_name=(final_key_field if not create_new_key else None),
             is_in_collection=False,
-            embedding_dimensions=azure_embedding_model_info["DIMS"],
-            vector_profile_name=vector_search.profiles[0].name
+            embedding_dimensions=self.embedding_model_info.dimensions,
+            vector_profile_name=self.vector_profile_name
         )
 
         # If we need to create a brand-new key field
@@ -416,7 +182,10 @@ class DynamicAzureIndexBuilder:
     def create_or_update_index(
         self,
         model: Type[BaseModel],
-        key_field_name: Optional[str] = None
+        key_field_name: Optional[str] = None,
+        vector_search: Optional[VectorSearch] = None,
+        semantic_search: Optional[SemanticSearch] = None,
+        vector_profile_index: Optional[int] = 0
     ) -> SearchIndex:
         """
         High-level method to build and commit a new or updated index definition 
@@ -428,19 +197,19 @@ class DynamicAzureIndexBuilder:
         :param semantic_search: Optional SemanticSearch configuration.
         :return: The created/updated SearchIndex object.
         """
-        index_def = self.build_index(model, key_field_name)
+        index_def = self.build_index(model, key_field_name, vector_search, semantic_search, vector_profile_index)
         result = self.index_client.create_or_update_index(index=index_def)
         print(f"Index '{result.name}' created/updated successfully.")
         return result
 
     ###########################################################################
     # 1) UPLOAD MODEL INSTANCES WITH EMBEDDINGS
+    # https://github.com/Azure/azure-search-vector-samples/blob/main/demo-python/code/basic-vector-workflow/azure-search-vector-python-sample.ipynb
     ###########################################################################
     def upload_documents(
         self,
         model_objects: List[BaseModel],
-        embedding_fields: Optional[dict] = None,
-        embedding_model_info: EmbeddingModelnfo = EmbeddingModelnfo(), 
+        embedding_fields: Optional[dict] = None
     ) -> None:
         """
         Takes a list of Pydantic model instances, optionally generates embeddings 
@@ -463,7 +232,7 @@ class DynamicAzureIndexBuilder:
             for field_name in embedding_fields:
                 if field_name in doc and isinstance(doc[field_name], str):
                     # generate embedding
-                    vector = get_embeddings(doc[field_name], embedding_model_info)
+                    vector = get_embeddings(doc[field_name], self.embedding_model_info)
                     # store as e.g. "titleVector"
                     vector_field_name = embedding_fields[field_name]
                     doc[vector_field_name] = vector
@@ -486,6 +255,7 @@ class DynamicAzureIndexBuilder:
 
     ###########################################################################
     # 2) DELETE MODEL INSTANCES
+    # https://github.com/Azure/azure-search-vector-samples/blob/main/demo-python/code/basic-vector-workflow/azure-search-vector-python-sample.ipynb
     ###########################################################################
     def delete_documents(self, doc_ids: List[str], key_field_name: str = "index_id") -> None:
         """
@@ -514,13 +284,15 @@ class DynamicAzureIndexBuilder:
 
     ###########################################################################
     # 3) HYBRID SEARCH (KEYWORD + VECTOR)
+    # https://github.com/Azure/azure-search-vector-samples/blob/main/demo-python/code/basic-vector-workflow/azure-search-vector-python-sample.ipynb
     ###########################################################################
     def hybrid_search(
         self,
         query: str,
-        vector_field: str,
-        top: int = 3
-    ) -> pd.DataFrame:
+        search_client: SearchClient = None,
+        vector_query: Optional[VectorizableTextQuery] = None,
+        search_params: SearchParams = SearchParams()
+    ) -> List[Dict[str, Any]]:
         """
         Perform a hybrid search, combining a keyword-based search with a 
         vector-based retrieval (RRF re-ranking).
@@ -529,40 +301,229 @@ class DynamicAzureIndexBuilder:
         :param vector_field: The name of the vector field (e.g. "contentVector")
         :param top: Number of results to return
         :return: A pandas DataFrame with columns ["id", ... , "@search.score"]
-        """
-        from azure.search.documents.models import VectorizableTextQuery
+        """      
 
-        results = self.search_client.search(
-            search_text=query,  # the keyword part
-            vector_queries=[
-                VectorizableTextQuery(
+        if search_client is None:
+            search_client = self.search_client
+
+        if (vector_query is None) and (search_params.query_type == "semantic"):
+            vector_query = VectorizableTextQuery(
                     text=query, 
                     k_nearest_neighbors=50,  # large recall set for better re-ranking
-                    fields=vector_field
+                    fields=search_params.vector_fields,
+                    exhaustive=search_params.exhaustive
                 )
-            ],
-            top=top,
+
+        results = search_client.search(
+            search_text=query,  # the keyword part
+            vector_queries=[vector_query] if vector_query is not None else None,
+            filter=f"unit_type eq '{search_params.unit_type}'" if search_params.unit_type is not None else None,
+            top=search_params.top,
             semantic_configuration_name="my-semantic-config",
-            query_type=QueryType.SEMANTIC,
+            query_type=QueryType.SEMANTIC if search_params.query_type == "semantic" else QueryType.SIMPLE,
         )
 
-        return results
+        # console.print("Query type:", QueryType.SEMANTIC if search_params.query_type == "semantic" else QueryType.SIMPLE)
 
-        # Collect results
-        rows = []
-        for res in results:
-            # We assume "id" is your actual key field or at least a unique ID
-            # Adjust the field names (res["title"], res["content"], etc.) as appropriate
-            row = {
-                "id": res.get("id", None),
-                "@search.score": res["@search.score"]
-            }
-            # If you know your documents contain 'title' or 'content', you can add:
-            if "title" in res:
-                row["title"] = res["title"]
-            if "content" in res:
-                row["content"] = res["content"]
-            rows.append(row)
+        return [r for r in results]
 
-        df = pd.DataFrame(rows)
-        return df
+
+
+    def widen_step_search(self,
+        query: str,
+        search_client: SearchClient = None,
+        search_params: SearchParams = SearchParams(),
+    ) -> List[Dict[str, Any]]:
+        
+        if search_client is None:
+            search_client = self.search_client
+
+        composite_results = []
+
+        # console.print(f"Starting search for query: {query}")
+
+        start_time = datetime.now()
+
+        search_params.query_type = "keyword"
+        results = self.hybrid_search(query, search_client=search_client, search_params=search_params)
+        composite_results.extend(results)
+
+        search_params.query_type = "semantic"
+        results = self.hybrid_search(query, search_client=search_client, search_params=search_params)
+        composite_results.extend(results)
+
+        finish_time = datetime.now()
+
+        console.print(f"Search took {finish_time - start_time} for query: {query}")
+
+        return list(composite_results)
+    
+
+    def widen_search(
+        self,
+        query: str,
+        search_params: SearchParams = SearchParams(),
+        model_info: TextProcessingModelnfo = TextProcessingModelnfo(),
+    ) -> List[Dict[str, Any]]:
+        """
+        Perform a hybrid search, combining a keyword-based search with a 
+        vector-based retrieval (RRF re-ranking).
+
+        :param query: The user query string
+        :param vector_field: The name of the vector field (e.g. "contentVector")
+        :param top: Number of results to return
+        :return: A pandas DataFrame with columns ["id", ... , "@search.score"]
+        """      
+        expanded_terms = expand_searh_terms(query, model_info=model_info)
+        console.print("Expanded Terms:", expanded_terms)
+
+        search_terms = [query] + expanded_terms.expanded_terms[:search_params.top_wide_search] + expanded_terms.related_areas[:search_params.top_wide_search]
+        search_results = pool.starmap(self.widen_step_search, zip(search_terms, 
+                                                                  self.search_clients[:len(search_terms)], 
+                                                                  [search_params]*len(search_terms)))
+
+        composite_results = []
+        for r in search_results: composite_results.extend(r)
+
+        # Deduplicate results based on index_id
+        unique_results = {result['index_id']: result for result in composite_results}.values()
+        console.print(f"Total Results: {len(composite_results)} reduced to {len(unique_results)} unique documents.")
+
+        return list(unique_results)
+    
+
+
+    @staticmethod
+    def format_search_results(search_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Format the search results for display in a front-end application.
+        """
+        formatted_results = []
+        for result in search_results:
+            formatted_result = {}
+            for key, value in result.items():
+                if key == "index_id":
+                    formatted_result["id"] = value
+                elif key == "@search.score":
+                    formatted_result["score"] = value
+                else:
+                    formatted_result[key] = value
+            formatted_results.append(formatted_result)
+        return formatted_results
+    
+
+
+
+
+
+
+
+    @staticmethod
+    def document_content_to_search_units(doc_content: DocumentContent, convert_post_processing_units: bool = False) -> List[SearchUnit]:
+        """
+        Generate a list of SearchUnit entries for indexing (text, images, tables).
+        """
+        search_units: List[SearchUnit] = []
+        metadata = doc_content.metadata
+
+        for page in doc_content.pages:
+            # 1) The main text
+            if page.text and page.text.text and page.text.text.text.strip():
+                search_units.append(
+                    SearchUnit(
+                        metadata=metadata.model_dump(),
+                        page_number=page.page_number,
+                        page_image_path=convert_path(str(page.page_image_path)),
+                        unit_type="text",
+                        text=page.text.text.text,
+                        text_file_cloud_storage_path=page.text.text.text_file_cloud_storage_path,
+                        page_image_cloud_storage_path=page.text.text.page_image_cloud_storage_path
+                    )
+                )
+
+            # 2) Each embedded image's text
+            for image in page.images:
+                if image.text and image.text.text and image.text.text.strip():
+                    search_units.append(
+                        SearchUnit(
+                            metadata=metadata.model_dump(),
+                            page_number=page.page_number,
+                            page_image_path=convert_path(str(page.page_image_path)),
+                            unit_type="image",
+                            text=image.text.text,
+                            text_file_cloud_storage_path=image.text.text_file_cloud_storage_path,
+                            page_image_cloud_storage_path=image.text.page_image_cloud_storage_path
+                        )
+                    )
+
+            # 3) Each table's content
+            for table in page.tables:
+                if table.text and table.text.text and table.text.text.strip():
+                    search_units.append(
+                        SearchUnit(
+                            metadata=metadata.model_dump(),
+                            page_number=page.page_number,
+                            page_image_path=convert_path(str(page.page_image_path)),
+                            unit_type="table",
+                            text=table.text.text,
+                            text_file_cloud_storage_path=table.text.text_file_cloud_storage_path,
+                            page_image_cloud_storage_path=table.text.page_image_cloud_storage_path
+                        )
+                    )
+
+        
+        if convert_post_processing_units:
+            ppc = doc_content.post_processing_content
+            if ppc.condensed_text and ppc.condensed_text.text and ppc.condensed_text.text.strip():
+                search_units.append(
+                    SearchUnit(
+                        metadata=metadata.model_dump(),
+                        page_number=-1,
+                        page_image_path="",
+                        unit_type="text",
+                        text=ppc.condensed_text.text,
+                        text_file_cloud_storage_path=ppc.condensed_text.text_file_cloud_storage_path,
+                        page_image_cloud_storage_path=ppc.condensed_text.page_image_cloud_storage_path
+                    )
+                )
+
+            if ppc.table_of_contents and ppc.table_of_contents.text and ppc.table_of_contents.text.strip():
+                search_units.append(
+                    SearchUnit(
+                        metadata=metadata.model_dump(),
+                        page_number=-2,
+                        page_image_path="",
+                        unit_type="text",
+                        text=ppc.table_of_contents.text,
+                        text_file_cloud_storage_path=ppc.table_of_contents.text_file_cloud_storage_path,
+                        page_image_cloud_storage_path=ppc.table_of_contents.page_image_cloud_storage_path
+                    )
+                )
+
+            if ppc.full_text and ppc.full_text.text and ppc.full_text.text.strip():
+                search_units.append(
+                    SearchUnit(
+                        metadata=metadata.model_dump(),
+                        page_number=-3,
+                        page_image_path="",
+                        unit_type="text",
+                        text=ppc.full_text.text,
+                        text_file_cloud_storage_path=ppc.full_text.text_file_cloud_storage_path,
+                        page_image_cloud_storage_path=ppc.full_text.page_image_cloud_storage_path
+                    )
+                )
+
+        return search_units
+    
+    @staticmethod
+    def load_search_units_from_folder(folder_path: Union[str, Path], convert_post_processing_units: bool = False) -> List[DataUnit]:
+        """
+        Load a DocumentContent from the given folder path, then convert it into DataUnits
+        by calling 'document_content_to_data_units'.
+        """
+        # 1) Reconstruct the DocumentContent using the pipeline's loader method
+        doc_content = PDFIngestionPipeline.load_document_content_from_json(folder_path)
+
+        # 2) Convert to DataUnits
+        data_units = DynamicAzureIndexBuilder.document_content_to_search_units(doc_content, convert_post_processing_units=convert_post_processing_units)
+        return data_units    

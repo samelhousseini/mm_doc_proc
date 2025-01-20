@@ -1,0 +1,117 @@
+### 1. Analyze the User’s Query  
+Analyze the user’s query. Identify relevant keywords and phrases that provide context about the query’s intent or the type of information they seek.  
+
+    #### START OF QUERY
+    {query}
+    #### END OF QUERY
+
+### 2. Reference Contextual Categories or Domains  
+If you have a **comprehensive list of categories or domains**:  
+- **Match** user query elements to relevant categories (or synonyms) wherever possible.  
+- If there’s **no direct match**, suggest **closest possible categories or concepts** that align with the query’s intent.  
+- If the query describes a **complex problem or multifaceted topic**, consider addressing it with **multiple categories or areas**.  
+
+### 3. Generate **Multiple Expanded Search Terms or Concepts**  
+- Produce **up to 10** variations of potential terms, concepts, or key phrases that could be relevant to the query.  
+- Use **singular form** unless the term inherently uses plural (e.g., "scissors").  
+- Avoid adding unnecessary words like "my," "for," "in," etc.  
+
+### 4. Output a Valid JSON Object  
+Your output must be a **single JSON** object with exactly **two keys**:  
+- `"expanded_terms"`: An array of **up to 10** terms, synonyms, or expanded variations relevant to the query.  
+- `"related_areas"`: An array of **up to 5** general categories, domains, or concepts that align with the query’s context.  
+
+### 5. Populate the JSON Fields  
+1. **expanded_terms**: Provide unambiguous terms, phrases, or keywords directly relevant to the query's context.  
+2. **related_areas**: Identify overarching areas or domains associated with the query to help structure the response or narrow the focus.  
+
+### 6. Multi-Faceted or Complex Queries  
+If the query implies a broad or multi-faceted problem:  
+- Generate **multiple expanded terms** referencing different subtopics or aspects.  
+- Use **related_areas** to reflect the overarching categories or domains that cover those subtopics.  
+
+### 7. Return **Only** the JSON  
+Provide no extra text, disclaimers, or formatting outside the JSON object.  
+
+---
+
+### Example Outputs  
+
+#### Example 1  
+**Original query:** `How do I stop a roof from leaking in heavy rain?`  
+
+{{
+  "expanded_terms": [
+    "roof leak repair",
+    "leak barrier installation",
+    "roofing maintenance tips",
+    "storm-proof roof solutions",
+    "waterproofing for roofs",
+    "emergency roof repair",
+    "roof patch techniques",
+    "roof flashing application",
+    "preventing roof damage",
+    "storm damage roof repair"
+  ],
+  "related_areas": [
+    "roofing materials",
+    "home maintenance",
+    "weatherproofing",
+    "emergency repairs",
+    "construction techniques"
+  ]
+}}
+
+
+#### Example 2  
+**Original query:** `How do I keep stray cats out of my garden?`  
+
+{{
+  "expanded_terms": [
+    "cat repellent methods",
+    "garden fencing ideas",
+    "deterring stray animals",
+    "non-toxic cat deterrents",
+    "animal-safe garden solutions",
+    "garden pest control tips",
+    "odor-based animal repellents",
+    "outdoor motion sensors",
+    "garden protection tips",
+    "humane animal barriers"
+  ],
+  "related_areas": [
+    "pest control",
+    "garden maintenance",
+    "animal behavior",
+    "fencing solutions",
+    "sustainability"
+  ]
+}}
+
+
+#### Example 3  
+**Original query:** `What’s the best way to reduce humidity in a small room?`  
+
+{{
+  "expanded_terms": [
+    "room dehumidification techniques",
+    "small room moisture control",
+    "reducing humidity indoors",
+    "ventilation tips for small spaces",
+    "portable dehumidifier options",
+    "preventing mold in small spaces",
+    "humidity management tips",
+    "air circulation improvement",
+    "dampness prevention methods",
+    "moisture-absorbing solutions"
+  ],
+  "related_areas": [
+    "indoor air quality",
+    "home appliances",
+    "moisture control",
+    "building maintenance",
+    "environmental health"
+  ]
+}}
+
+

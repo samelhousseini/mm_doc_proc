@@ -21,100 +21,10 @@ from tenacity import (
     after_log
 )
 
-from env_vars import *
 from utils.text_utils import recover_json
-from utils.data_models import MulitmodalProcessingModelInfo, TextProcessingModelnfo
+from multimodal_processing_pipeline.data_models import *
+from utils.openai_data_models import *
 from utils.file_utils import convert_png_to_jpg, get_image_base64
-
-AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION')
-
-
-azure_gpt_4o_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_4O'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_4O'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_4O'),
-    "API_VERSION": AZURE_OPENAI_API_VERSION
-}
-
-
-azure_o1_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_O1'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_O1'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O1'),
-    "API_VERSION": AZURE_OPENAI_API_VERSION
-}
-
-
-azure_o1_mini_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_O1_MINI'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_O1_MINI'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O1_MINI'),
-    "API_VERSION": AZURE_OPENAI_API_VERSION
-}
-
-azure_embedding_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_EMBEDDING'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_EMBEDDING'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_EMBEDDING'),
-    "DIMS": 3072 if os.getenv('AZURE_OPENAI_MODEL_EMBEDDING') == "text-embedding-3-large" else 1536
-}
-
-
-openai_gpt_4o_model_info = {
-    "KEY": os.getenv('OPENAI_API_KEY'),
-    "MODEL": os.getenv('OPENAI_MODEL_4O')
-}
-
-openai_o1_model_info = {
-    "KEY": os.getenv('OPENAI_API_KEY'),
-    "MODEL": os.getenv('OPENAI_MODEL_O1')
-}
-
-openai_o1_mini_model_info = {
-    "KEY": os.getenv('OPENAI_API_KEY'),
-    "MODEL": os.getenv('OPENAI_MODEL_O1_MINI')
-}
-
-openai_embedding_model_info = {
-    "KEY": os.getenv('OPENAI_API_KEY'),
-    "MODEL": os.getenv('OPENAI_MODEL_EMBEDDING'),
-    "DIMS": 3072 if os.getenv('AZURE_OPENAI_MODEL_EMBEDDING') == "text-embedding-3-large" else 1536
-}
-
-
-def get_azure_endpoint(resource):
-    return f"https://{resource}.openai.azure.com" if not "https://" in resource else resource
-
-
-azure_oai_client_4o = AzureOpenAI(
-    azure_endpoint = get_azure_endpoint(azure_gpt_4o_model_info["RESOURCE"]),
-    api_key= azure_gpt_4o_model_info["KEY"],
-    api_version= AZURE_OPENAI_API_VERSION,
-)
-
-azure_oai_client_o1 = AzureOpenAI(
-    azure_endpoint = get_azure_endpoint(azure_o1_model_info["RESOURCE"]),
-    api_key= azure_o1_model_info["KEY"],  
-    api_version= AZURE_OPENAI_API_VERSION,
-)
-
-azure_oai_client_o1_mini = AzureOpenAI(
-    azure_endpoint = get_azure_endpoint(azure_o1_mini_model_info["RESOURCE"]),
-    api_key= azure_o1_mini_model_info["KEY"],
-    api_version= AZURE_OPENAI_API_VERSION,
-)
-
-
-azure_embeding_client = AzureOpenAI(
-    azure_endpoint = get_azure_endpoint(azure_embedding_model_info["RESOURCE"]),
-    api_key= azure_embedding_model_info["KEY"],
-    api_version= AZURE_OPENAI_API_VERSION,
-)
-
-
-openai_client = OpenAI(
-    api_key = openai_gpt_4o_model_info["KEY"],
-)
 
 
 
@@ -158,23 +68,13 @@ def prepare_image_messages(imgs):
 
 
 
-def get_embeddings(text, model_info):
-    if model_info.provider == "azure":
-        client = azure_embeding_client
-        model = azure_embedding_model_info["MODEL"]
-    else:
-        client = openai_client
-        model = openai_embedding_model_info["MODEL"]
-
-    return get_text_embeddings(text, client, model)
-
-
-def get_text_embeddings(text, client = azure_embeding_client, embedding_model = openai_embedding_model_info["MODEL"]):
-    return client.embeddings.create(input=[text], model=embedding_model).data[0].embedding
+def get_embeddings(text : str, model_info: EmbeddingModelnfo = EmbeddingModelnfo()):
+    if model_info.client is None: model_info = instantiate_model(model_info)
+    return model_info.client.embeddings.create(input=[text], model=model_info.model_name).data[0].embedding
 
 
 
-def call_llm(prompt_or_messages, model_info, temperature = 0.2):
+def call_llm(prompt_or_messages: str, model_info: Union[MulitmodalProcessingModelInfo, TextProcessingModelnfo], temperature = 0.2):
     if isinstance(prompt_or_messages, str):
         messages = []
         messages.append({"role": "user", "content": "You are a helpful assistant, who helps the user with their query."})     
@@ -182,41 +82,16 @@ def call_llm(prompt_or_messages, model_info, temperature = 0.2):
     else:
         messages = prompt_or_messages
 
-    if model_info.provider == "azure":
-        if model_info.model_name == "gpt-4o":
-            client = azure_oai_client_4o
-            model = azure_gpt_4o_model_info['MODEL']
-            return call_4o(messages, client, model, temperature)
-        elif model_info.model_name == "o1":
-            client = azure_oai_client_o1
-            model = azure_o1_model_info['MODEL']
-            reasoning_effort = model_info.reasoning_efforts
-            return call_o1(messages, client, model, reasoning_effort)
-        elif model_info.model_name == "o1-mini":
-            client = azure_oai_client_o1_mini
-            model = azure_o1_mini_model_info['MODEL']
-            return call_o1_mini(messages, client, model)
-        else:
-            client = azure_oai_client_4o
-            model = azure_gpt_4o_model_info['MODEL']
-            return call_4o(messages, client, model, temperature)
+    if model_info.client is None: model_info = instantiate_model(model_info)
+
+    if model_info.model_name == "gpt-4o":
+        return call_4o(messages, model_info.client, model_info.model, temperature)
+    elif model_info.model_name == "o1":
+        return call_o1(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
+    elif model_info.model_name == "o1-mini":
+        return call_o1_mini(messages, model_info.client, model_info.model)
     else:
-        if model_info.model_name == "gpt-4o":
-            client = openai_client
-            model = openai_gpt_4o_model_info['MODEL']
-            return call_4o(messages, client, model, temperature)
-        elif model_info.model_name == "o1":
-            client = openai_client
-            model = openai_o1_model_info['MODEL']
-            return call_o1(messages, client, model)
-        elif model_info.model_name == "o1-mini":
-            client = openai_client
-            model = openai_o1_mini_model_info['MODEL']
-            return call_o1_mini(messages, client, model)
-        else:
-            client = openai_client
-            model = openai_gpt_4o_model_info['MODEL']
-            return call_4o(messages, client, model, temperature)
+        return call_4o(messages, model_info.client, model_info.model, temperature)
 
 
 
@@ -228,31 +103,18 @@ def call_4o(messages, client, model, temperature = 0.2):
 
 def call_o1(messages,  client, model, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
-
-    response = client.chat.completions.create(
-        model=model, 
-        messages=messages,
-        reasoning_effort=reasoning_effort,
-    )
-
+    response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
     return response.model_dump()['choices'][0]['message']['content']
 
 
 def call_o1_mini(messages,  client, model): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
-
-    response = client.chat.completions.create(
-        model=model, 
-        messages=messages
-    )
-
+    response = client.chat.completions.create(model=model, messages=messages)
     return response.model_dump()['choices'][0]['message']['content']
        
 
 
-
-
-def call_llm_structured_outputs(imgs, prompt, model_info, response_format):
+def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextProcessingModelnfo], response_format, imgs=[]):
     content = [{"type": "text", "text": prompt}]
     content = content + prepare_image_messages(imgs)
     messages = [
@@ -260,69 +122,33 @@ def call_llm_structured_outputs(imgs, prompt, model_info, response_format):
         {"role": "user", "content": content},
     ]
 
-    if model_info.provider == "azure":
-        if model_info.model_name == "gpt-4o":
-            client = azure_oai_client_4o
-            model = azure_gpt_4o_model_info['MODEL']
-            return call_llm_structured_4o(messages, client, model, response_format)
-        elif model_info.model_name == "o1":
-            client = azure_oai_client_o1
-            model = azure_o1_model_info['MODEL']
-            return call_llm_structured_o1(messages, client, model, response_format, model_info.reasoning_efforts)
-        elif model_info.model_name == "o1-mini":
-            client = azure_oai_client_o1_mini
-            model = azure_o1_mini_model_info['MODEL']
-            return call_llm_structured_o1_mini(messages, client, model, response_format)
-        else:
-            client = azure_oai_client_4o
-            model = azure_gpt_4o_model_info['MODEL']
-            return call_llm_structured_4o(messages, client, model, response_format)
+    if model_info.client is None: model_info = instantiate_model(model_info)
+
+    if model_info.model_name == "gpt-4o":
+        return call_llm_structured_4o(messages, model_info.client, model_info.model, response_format)
+    elif model_info.model_name == "o1":
+        return call_llm_structured_o1(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
+    elif model_info.model_name == "o1-mini":
+        return call_llm_structured_o1_mini(messages, model_info.client, model_info.model, response_format)
     else:
-        if model_info.model_name == "gpt-4o":
-            client = openai_client
-            model = openai_gpt_4o_model_info['MODEL']
-            return call_llm_structured_4o(messages, client, model, response_format)
-        elif model_info.model_name == "o1":
-            client = openai_client
-            model = openai_o1_model_info['MODEL']
-            return call_llm_structured_o1(messages, client, model, response_format, model_info.reasoning_efforts)
-        elif model_info.model_name == "o1-mini":
-            client = openai_client
-            model = openai_o1_mini_model_info['MODEL']
-            return call_llm_structured_o1_mini(messages, client, model, response_format)
-        else:
-            client = openai_client
-            model = openai_gpt_4o_model_info['MODEL']
-            return call_llm_structured_4o(messages, client, model, response_format)
+        return call_llm_structured_4o(messages, model_info.client, model_info.model, response_format)
+
 
 
 def call_llm_structured_4o(messages, client, model, response_format):
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
-    completion = client.beta.chat.completions.parse(
-        model=model,
-        messages=messages,
-        response_format=response_format,
-    )
+    completion = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
     return completion.choices[0].message.parsed
 
 
 def call_llm_structured_o1(messages, client, model, response_format, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
-    response = client.beta.chat.completions.parse(
-        model=model, 
-        messages=messages,
-        reasoning_effort=reasoning_effort,
-        response_format=response_format
-    )
+    response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
     return response.choices[0].message.parsed
 
  
 def call_llm_structured_o1_mini(messages, client, model, response_format): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
-    response = client.beta.chat.completions.parse(
-        model=model, 
-        messages=messages,
-        response_format=response_format
-    )
+    response = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
     return response.choices[0].message.parsed
 

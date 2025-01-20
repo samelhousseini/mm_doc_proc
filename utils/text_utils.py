@@ -178,3 +178,7 @@ def extract_chunk_number(filename, verbose = False):
         chunk_number = 'unknown'
 
     return chunk_number
+
+
+def convert_path(path):
+    return str(path).replace("\\", "/")
