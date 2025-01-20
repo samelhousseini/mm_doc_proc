@@ -46,7 +46,7 @@ The **PDF Ingestion Pipeline** reads a PDF file page by page, leverages multimod
 
 1. **Clone the Repository**: 
    ```bash
-   git clone https://github.com/your-org/pdf-ingestion-pipeline.git
+   git clone https://github.com/samelhousseini/pdf-ingestion-pipeline.git
    ```
 2. **Install Dependencies**:  
    ```bash
@@ -183,7 +183,7 @@ TextProcessingModelnfo(
 - `"o1-mini"` is **not** multimodal, so you must use it only for text-based processing.
 
 
-```
+
 - If your application needs embeddings for search or semantic indexing, you can configure this optional class.
 
 ---
