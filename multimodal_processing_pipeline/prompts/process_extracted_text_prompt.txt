@@ -1,11 +1,13 @@
 The Extracted Text below is extracted with OCR. Please reformat all text and re-arrange it. Do not add text from your side, use the Extracted Text verbatim word-for-word. If you detect tables in the Extracted Text, please output them in Markdown format. The objective here to make the Extracted Text more readable and understandable. Do **NOT** any comments, details, explanations or justifications from your part.
 
+In case there is an image screenshot of the document page attached with this request. Please refer to the page to process the text in a better way.
+
 Extracted Text:
 ## START OF EXTRACTED TEXT
 {text}
 ## END OF EXTRACTED TEXT
 
-Please generate below the final reformatted text.
+Please note that if the extracted text above, enclosed between '## START OF EXTRACTED TEXT' and '## END OF EXTRACTED TEXT' is empty, then that means that the PDF document is a print PDF and not a digital PDF and that the OCR function has failed. In this case, please rely solely on the attached image screenshot of the document page if provided.
 
 
 

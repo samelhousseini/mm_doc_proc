@@ -8,6 +8,13 @@ from utils.openai_data_models import *
 # Working data models - used in LLM Structured Outputs calls
 ###############################################################################
 
+class EmbeddedText(BaseModel):
+    """
+    Used in LLM call structured output for text analysis.
+    """
+    processed_text: str
+    
+
 
 class EmbeddedImage(BaseModel):
     """

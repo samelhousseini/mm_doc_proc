@@ -58,10 +58,13 @@ class PDFIngestionPipeline:
         self.pdf_path = Path(processing_pipeline_config.pdf_path)
         # Output directory at the root, not subdirs for text/images/etc.
         self.output_directory = (
-            Path(processing_pipeline_config.output_directory)
+            processing_pipeline_config.output_directory
             if processing_pipeline_config.output_directory
-            else Path("processed") / self.pdf_path.stem
+            else str(Path("processed") / self.pdf_path.stem)
         )
+        self.output_directory = Path(self.output_directory.replace(" ", "_"))
+        console.print("Output Directory for processing file: ", self.output_directory)
+
         self.metadata = None
 
         self._validate_paths()
@@ -151,9 +154,11 @@ class PDFIngestionPipeline:
         """
         processed_or_raw_text = False
         text = page.get_text()
+
         if self.processing_pipeline_config.process_text:
-            text = process_text(text, model_info=self._text_model)
+            text = process_text(text, page_image_path, model_info=self._text_model)
             processed_or_raw_text = True
+
         console.print("[bold magenta]Extracted/Processed Text:[/bold magenta]", text)
 
         page_dir = self.output_directory / "pages" / f"page_{page_number}"

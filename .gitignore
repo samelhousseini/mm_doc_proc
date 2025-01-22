@@ -183,3 +183,4 @@ processed/
 env_vars.py
 
 old_*.py
+downloaded_files/

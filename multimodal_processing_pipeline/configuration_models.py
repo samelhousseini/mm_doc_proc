@@ -11,7 +11,7 @@ class ProcessingPipelineConfiguration(BaseModel):
     Configuration settings for the processing pipeline.
     """
     pdf_path: str
-    output_directory: Optional[str] = str
+    output_directory: Optional[str] = None
     multimodal_model: MulitmodalProcessingModelInfo = MulitmodalProcessingModelInfo()
     text_model: TextProcessingModelnfo = TextProcessingModelnfo()
     process_pages_as_jpg: bool = True

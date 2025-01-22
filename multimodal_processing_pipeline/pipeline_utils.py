@@ -1,17 +1,18 @@
 import os
 import base64
+import json
 from PIL import Image
 from utils.file_utils import write_to_file, replace_extension, read_asset_file, locate_prompt
 from utils.text_utils import clean_up_text, extract_markdown, extract_code
 from utils.openai_utils import call_llm, call_llm_structured_outputs
-from data_models import EmbeddedImages, EmbeddedTables
+from data_models import EmbeddedText, EmbeddedImages, EmbeddedTables
 
 
 module_directory = os.path.dirname(os.path.abspath(__file__))
 
 
 
-def locate_ingestion_prompt(prompt_name, module_directory):
+def locate_ingestion_prompt(prompt_name, module_directory=module_directory):
     return locate_prompt(prompt_name, module_directory)
 
 
@@ -93,7 +94,7 @@ def analyze_tables(image_path, model_info=None):
     return response
 
 
-def process_text(text, model_info=None):
+def process_text(text, page_image_path, model_info=None):
     """
     Processes text using a language model.
 
@@ -110,12 +111,20 @@ def process_text(text, model_info=None):
 
     prompt = process_text_prompt.format(text=text)
 
-    response = call_llm(
-        prompt,
-        model_info=model_info
-    )
+    if model_info.model_name == "o1-mini":
+        response = call_llm(
+            prompt,
+            model_info=model_info
+        )
+        return response
+    else:
+        response = call_llm(
+            prompt=prompt,
+            model_info=model_info,
+            imgs = [page_image_path],
+        )
 
-    return response
+        return response
 
 
 def condense_text(text, model_info=None):

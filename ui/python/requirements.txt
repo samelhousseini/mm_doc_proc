@@ -13,3 +13,5 @@ tenacity
 rich
 chainlit
 semantic-kernel
+fastapi 
+uvicorn[standard]

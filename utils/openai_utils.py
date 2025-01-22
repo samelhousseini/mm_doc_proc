@@ -74,13 +74,13 @@ def get_embeddings(text : str, model_info: EmbeddingModelnfo = EmbeddingModelnfo
 
 
 
-def call_llm(prompt_or_messages: str, model_info: Union[MulitmodalProcessingModelInfo, TextProcessingModelnfo], temperature = 0.2):
-    if isinstance(prompt_or_messages, str):
-        messages = []
-        messages.append({"role": "user", "content": "You are a helpful assistant, who helps the user with their query."})     
-        messages.append({"role": "user", "content": prompt_or_messages})     
-    else:
-        messages = prompt_or_messages
+def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextProcessingModelnfo], temperature = 0.2, imgs=[]):
+    content = [{"type": "text", "text": prompt}]
+    content = content + prepare_image_messages(imgs)
+    messages = [
+        {"role": "user", "content": "You are a helpful assistant that processes text and images."},
+        {"role": "user", "content": content},
+    ]
 
     if model_info.client is None: model_info = instantiate_model(model_info)
 
@@ -118,7 +118,7 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
     content = [{"type": "text", "text": prompt}]
     content = content + prepare_image_messages(imgs)
     messages = [
-        {"role": "user", "content": "You are a helpful assistant that processes images to generate structured outputs."},
+        {"role": "user", "content": "You are a helpful assistant that processes text and images to generate structured outputs."},
         {"role": "user", "content": content},
     ]
 
