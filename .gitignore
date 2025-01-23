@@ -182,5 +182,5 @@ test*.ipynb
 processed/
 env_vars.py
 
-old_*.py
+old_*.*
 downloaded_files/

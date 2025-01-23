@@ -500,6 +500,15 @@ class AzureBlobStorage:
         if post_proc.document_json:
             self._upload_data_unit(container_name, post_proc.document_json, blob_prefix=None)
 
+        if post_proc.translated_full_texts:
+            for i, text in enumerate(post_proc.translated_full_texts):
+                self._upload_data_unit(container_name, text, blob_prefix=None)
+
+        if post_proc.translated_condensed_texts:
+            for i, text in enumerate(post_proc.translated_condensed_texts):
+                self._upload_data_unit(container_name, text, blob_prefix=None)
+
+
     # --------------------------------------------------------------------------
     # Upload a single PageContent
     # --------------------------------------------------------------------------

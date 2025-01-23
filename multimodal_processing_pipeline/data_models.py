@@ -1,8 +1,27 @@
 from pydantic import BaseModel
+from typing import Set
 from typing import Optional, List, Literal
 from pathlib import Path
 
 from utils.openai_data_models import *
+
+
+
+###############################################################################
+# Pipeline State models 
+###############################################################################
+
+
+class PipelineState(BaseModel):
+    text_extracted_pages: List[int] = []
+    images_extracted_pages: List[int] = []
+    tables_extracted_pages: List[int] = []
+    post_processing_done: bool = False
+
+    class Config:
+        json_encoders = {
+            set: list
+        }
 
 ###############################################################################
 # Working data models - used in LLM Structured Outputs calls
@@ -20,17 +39,17 @@ class EmbeddedImage(BaseModel):
     """
     Used in LLM call structured output for image analysis.
     """
-    graph_or_photo_explanation: str
+    visual_description: str
     contextual_relevance: str
     analysis: str
-    image_type: Literal["graph", "photo"]
+    visual_type: Literal["graph", "photo", "infographic", "generic"]
 
 
 class EmbeddedImages(BaseModel):
     """
     Used in LLM call structured output for image analysis.
     """
-    detected_graphs_or_photos: Optional[List[EmbeddedImage]] 
+    detected_visuals: Optional[List[EmbeddedImage]] 
 
 
 class EmbeddedTable(BaseModel):
@@ -57,6 +76,7 @@ class EmbeddedTables(BaseModel):
 
 class DataUnit(BaseModel):
     text: str
+    language: str = "en"
     text_file_path: Optional[str] = None  # Path to the text file in cloud storage
     text_file_cloud_storage_path: Optional[str] = None  # Path to the text file in cloud storage
     page_image_path: Optional[str] = None  # Path to the saved image file
@@ -124,6 +144,8 @@ class PostProcessingContent(BaseModel):
     table_of_contents: Optional[DataUnit] = None
     full_text: Optional[DataUnit] = None
     document_json: Optional[DataUnit] = None
+    translated_full_texts: Optional[List[DataUnit]] = None
+    translated_condensed_texts: Optional[List[DataUnit]] = None
     
 
 class DocumentContent(BaseModel):

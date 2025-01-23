@@ -1,0 +1,8 @@
+azure-identity
+azure-mgmt-authorization
+azure-mgmt-msi
+azure-ai-ml
+rich
+azure-storage-blob
+pydantic
+pandas

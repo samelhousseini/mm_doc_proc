@@ -1,0 +1,26 @@
+name: doc-processing
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Specify your Python version
+  - python=3.9
+
+  # Include pip (so we can install pip packages)
+  - pip=22.0
+
+  # If your code needs other conda packages (numpy, pandas, etc.), add them here
+  # - numpy
+  # - pandas
+
+  - pip:
+    # Azure Identity & Storage libraries
+    - azure-identity
+    - azure-storage-blob
+
+    # (Optional) If your job code uses the AML v2 SDK in-script
+    - azure-ai-ml
+
+    # (Optional) If you need logging or other libraries
+    # - azure-core
+    # - requests

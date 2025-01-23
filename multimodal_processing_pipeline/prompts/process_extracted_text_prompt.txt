@@ -1,13 +1,49 @@
-The Extracted Text below is extracted with OCR. Please reformat all text and re-arrange it. Do not add text from your side, use the Extracted Text verbatim word-for-word. If you detect tables in the Extracted Text, please output them in Markdown format. The objective here to make the Extracted Text more readable and understandable. Do **NOT** any comments, details, explanations or justifications from your part.
+## **Prompt for OCR Text Re-Formatting**
 
-In case there is an image screenshot of the document page attached with this request. Please refer to the page to process the text in a better way.
+You receive:
+
+1. **An Optional Image Screenshot** (scanned page).  
+2. **Extracted Text** (OCR output from the same image).
 
 Extracted Text:
 ## START OF EXTRACTED TEXT
 {text}
 ## END OF EXTRACTED TEXT
 
-Please note that if the extracted text above, enclosed between '## START OF EXTRACTED TEXT' and '## END OF EXTRACTED TEXT' is empty, then that means that the PDF document is a print PDF and not a digital PDF and that the OCR function has failed. In this case, please rely solely on the attached image screenshot of the document page if provided.
+Your goal:
+- Produce a **clean, logically ordered** version of the extracted text that matches the visual layout of the attached image (if provided).  
+- **Do not** add, remove, or alter any words, punctuation, or symbols beyond what is needed to fix misaligned line breaks.  
+- **Preserve** the exact textual content (verbatim), but reorder or merge lines to create cohesive paragraphs, sentences, lists, or tables that reflect how the text appears on the image.
 
+### Key Instructions
+1. **Examine the Attached Image Layout (if provided)**  
+   - Use the screenshot to understand how elements are arranged (e.g., headlines, subheadings, bulleted lists, tables, side notes).  
+   - Identify any columns, boxes, or sections that group certain pieces of text together.
+   - If the image screenshot is not provided, try your best to infer the layout from the extracted text.
 
+2. **Reconstruct Reading Order**  
+   - Combine lines from the OCR if they logically form a single sentence or phrase in the image.  
+   - Break text into paragraphs or lists, following the original visual flow from the image.  
+   - Ensure headings appear as headings (e.g., use Markdown’s `# Heading` or `## Heading` syntax if relevant).
+   
+3. **Preserve All Text Verbatim**  
+   - **No new words** beyond what’s already in the OCR output.  
+   - Do **not** remove or alter existing words—even if they seem out of place—unless they are obvious OCR artifacts like repeated punctuation on adjacent lines (e.g., “!” alone on a line).  
+   - If you must remove an artifact (such as an accidental letter repeated out of context), do so only when certain that the original text in the image does not actually have it.
+
+4. **Tables and Lists**  
+   - If you detect table-like layouts or bullet/numbered lists, reformat them into **Markdown tables** or bullet/numbered lists.  
+   - Make sure row/column headers and data points remain in the correct alignment and order.
+
+5. **No Extra Commentary**  
+   - The final output should **only** contain the rearranged text—no additional explanations, disclaimers, or editorial notes.
+
+6. **Final Check**  
+   - Review your output for clarity and coherence, ensuring it matches the layout as faithfully as possible.  
+   - Confirm that every word from the extracted text appears somewhere in your reflowed version, unless you’re certain it was an OCR artifact.  
+   - Retain any original line designations like “step 1,” “step 2,” etc., in the right order, and keep them next to the relevant instructions.
+
+### Your Output
+- One consolidated, well-structured text block (using paragraphs, headings, bullet points, or tables as needed) that reflects the visual organization of the provided image. However, you **MUST NOT** generate new words or remove words, you **MUST** use the text verbatim, just reorgnize into what makes sense.
+- The content must read naturally and be easy to understand **without** seeing the actual image, while still mirroring that image’s layout as much as possible.
 

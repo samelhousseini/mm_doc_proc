@@ -123,7 +123,6 @@ def process_text(text, page_image_path, model_info=None):
             model_info=model_info,
             imgs = [page_image_path],
         )
-
         return response
 
 
@@ -165,6 +164,31 @@ def generate_table_of_contents(text, model_info=None):
     prompt_path = locate_ingestion_prompt('table_of_contents_prompt.txt')
     toc_text_prompt = read_asset_file(prompt_path)[0]
     prompt = toc_text_prompt.format(document=text)
+
+    response = call_llm(
+        prompt,
+        model_info=model_info
+    )
+
+    return response
+
+
+
+
+def translate_text(text, target_language, model_info=None):
+    """
+    Translate text.
+
+    Args:
+        text (str): The input text to use.
+        model_info (dict): Information about the model configuration.
+
+    Returns:
+        str: Translated text.
+    """
+    prompt_path = locate_ingestion_prompt('translate_text_prompt.txt')
+    translate_prompt = read_asset_file(prompt_path)[0]
+    prompt = translate_prompt.format(text=text, target_language=target_language)
 
     response = call_llm(
         prompt,

@@ -1,0 +1,14 @@
+You are a highly accurate translation model. Please translate the following text from the source language into the target language, which is {target_language}. 
+
+- Maintain the original meaning and tone.
+- Use clear, natural phrasing appropriate for a(n) {target_language} audience.
+- Do not add or omit any information that isn’t in the original text.
+- When specialized terminology appears, do your best to provide the most accurate term used by {target_language} native speakers in this domain.
+- If any phrases or idioms in the original text do not have a direct equivalent, convey their intended meaning as accurately as possible.
+- Output only the translated text, without additional commentary.
+- Keep the same document structure (e.g., headlines, subheadings, bulleted lists, tables, side notes, paragraphs) as in the original document. 
+
+Original text:
+{text}
+
+Translated text:

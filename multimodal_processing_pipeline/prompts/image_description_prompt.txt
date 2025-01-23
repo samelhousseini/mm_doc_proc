@@ -1,10 +1,13 @@
-**PLEASE NOTE**: The file you receive is a **screenshot** of an entire PDF page. That page **may** contain text, headings, paragraphs, tables, and other visual elements. For this task:
+## **PLEASE NOTE**  
+The file you receive is a **screenshot** of an entire PDF page. That page **may** contain text, headings, paragraphs, tables, and other visual elements. For this task:
 
 1. **Do NOT** summarize or describe the entire PDF page layout or text.  
-2. **Focus EXCLUSIVELY** on any **embedded photographs** or **embedded graphs** within that page screenshot.  
-3. If there are **no** embedded photographs or graphs, you **MUST** return an **empty** array (`"detected_graphs_or_photos": []`) in the final JSON.
+2. **Focus EXCLUSIVELY** on any **embedded photographs**, **embedded graphs**, **infographics**, or **generic** visuals within that page screenshot.  
+3. If there are **no** embedded photographs, graphs, infographics, or generic visuals, you **MUST** return an **empty** array (`"detected_visuals": []`) in the final JSON.
 
-#### **A. Identifying and Describing a Photograph**
+---
+
+### **A. Identifying and Describing a Photograph**
 
 - **Definition**: A **photograph** is any natural or illustrative image (e.g., real-life scenes, indoor settings, outdoor landscapes, product photos) that is **not** a graph or chart.  
 - **What to Include**:  
@@ -12,203 +15,301 @@
   - **Colors/Placement**: Relative sizes, positions, color schemes, special attributes.  
   - **Possible Purpose**: Why might this photo be included? (e.g., highlight a landmark, illustrate an environment, show a product in use, etc.)
 
-#### **B. Identifying and Describing a Graph**
+---
+
+### **B. Identifying and Describing a Graph**
 
 - **Definition**: A **graph** is a visual data representation (bar chart, line chart, pie chart, flowchart, scatter plot, etc.).  
   - **Regular text-based tables** with borders are **not** graphs unless they appear as a purely visual chart/infographic.  
 - **What to Include**:  
-  - **Type of Graph**: Bar chart, line graph, pie chart, etc.  
+  - **Type of Graph**: Bar chart, line graph, pie chart, etc. 
+  - **Description of the Graph**: Describe in details the graph and all trends, numbers and information that it includes. Assume that the user is not able to see the graph, and you are describing it to them without missing any detail. Assume every detail is crucial, and that the user will be able to reconstruct the graph from this explanation only without seeing the original graph. 
   - **Graph Components**: Axes labels, data points, legends, scale.  
   - **Trends/Patterns**: Rising or falling lines, largest slices, color-coding, relevant numeric values.  
   - **Possible Purpose**: Compare categories, show growth over time, illustrate a workflow, etc.
 
-#### **C. Output Format Requirements**
+---
 
-- Your final output **MUST** be **one** JSON object with a single key. You **MUST** use the below as JSON format:
-  
-  {{
-    "detected_graphs_or_photos": [
-      {{
-         "graph_or_photo_explanation": "Elaborate explanation of the photo or graph.",
-         "contextual_relevance": "Explains how this photo or graph is relevant to the rest of the page.",
-         "analysis": "Analysis of the graph or photo itself, with the page as context.",
-         "image_type": "Type of this item: either 'photo' or 'graph'"
-      }},
-      {{
-         "graph_or_photo_explanation": "Elaborate explanation of the photo or graph.",
-         "contextual_relevance": "Explains how this photo or graph is relevant to the rest of the page.",
-         "analysis": "Analysis of the graph or photo itself, with the page as context.",
-         "image_type": "Type of this item: either 'photo' or 'graph'"
-      }},
-      etc..
-    ]
-  }}
-  
-  - **`"detected_graphs_or_photos"`** is a **list**.  
-  - Each element in the list is an **object** with **three** keys:
-    1. `"graph_or_photo_explanation": str`  
-    2. `"contextual_relevance": str`  
-    3. `"analysis": str`
+### **C. Identifying and Describing an Infographic**
 
-- If **no** embedded photographs or graphs exist in the screenshot, output:
-  
-  {{
-    "detected_graphs_or_photos": []
-  }}
-  
+- **Definition**: An **infographic** is a visual design that combines **text, icons, charts, or other imagery** in a **single graphic** to present information, data, or knowledge quickly and clearly. It often includes **decorative elements**, **callouts**, or **iconography** to illustrate a concept more richly than a simple graph or text block.  
+  - Infographics can contain **multiple mini-charts**, **illustrations**, **statistics**, and **headings** integrated into one cohesive design.  
+- **What to Include**:  
+  - **Overall Layout**: How elements (icons, text callouts, mini-graphs) are arranged. 
+  - **Description of the Infographic**: Describe in details what the infographic is illustrating, whether these are process steps, workflows, instructions, schematics, or other types of infographic. Convert this infographic into a text manual detailing all instructions and relationships, assume that the user is not able to see the infographic, and you are describing it to them without missing any detail. Assume every detail is crucial, and that the user will be able to reconstruct the infographic from this explanation only without seeing the original infographic.
+  - **Data or Statistics**: If present, note any prominent figures, percentages, or key statements.  
+  - **Visual Elements**: Icons, color schemes, thematic images, labels, and how they guide the viewer’s understanding.  
+  - **Possible Purpose**: Summarize complex information in a visually engaging manner, highlight a process flow with icons and text, compare multiple data points in a single eye-catching design, etc.
 
-#### **D. Additional Instructions**
+---
+
+### **D. Identifying and Describing Generic Visualizations**
+
+- **Definition**: A **generic** visualization is **any other type of embedded visual** that does **not** fit neatly into the **photo**, **graph**, or **infographic** categories. These could include:  
+  - **Illustrations**, **drawings**, **diagrams** (with minimal data focus), **icons** or **symbolic visuals** that convey ideas but are not strictly data-driven charts, photos, or fully-fledged infographics.
+- **What to Include**:
+  - **Overall Appearance**: Describe the visual style (e.g., cartoonish, minimalist, schematic) and its key elements or shapes.
+  - **Description of the Visualization**: Describe in details the visualization and all information that it includes. Assume that the user is not able to see the visualization, and you are describing it to them without missing any detail. Assume every detail is crucial, and that the user will be able to reconstruct the visualization from this explanation only without seeing the original visualization.
+  - **Content**: Note any notable objects, icons, or stylized representations visible in the visualization.
+  - **Possible Purpose**: Suggest why this visualization might have been included (e.g., to illustrate a concept, provide a symbolic representation, serve as a decorative or thematic accent).
+
+---
+
+### **E. Output Format Requirements**
+
+Your final output **MUST** be **one** JSON object with a single key:  
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A detailed explanation of the photograph, graph, infographic, or generic visual.",
+      "contextual_relevance": "Explains how this visual might be relevant to the rest of the page.",
+      "analysis": "Analysis of the visual itself, with the page as context.",
+      "visual_type": "photo | graph | infographic | generic"
+    }},
+    {{
+      "visual_description": "...",
+      "contextual_relevance": "...",
+      "analysis": "...",
+      "visual_type": "photo | graph | infographic | generic"
+    }},
+    ...
+  ]
+}}
+
+
+- **`"detected_visuals"`** is a **list**.  
+- Each element in the list is an **object** with **four** keys:
+  1. **`"visual_description"`**: A thorough description of the visual.  
+  2. **`"contextual_relevance"`**: Short note on how/why it ties into the document’s theme or content.  
+  3. **`"analysis"`**: Any deeper commentary, patterns, or interpretive notes.  
+  4. **`"visual_type"`**: Must be **`"photo"`, `"graph"`, `"infographic"`, or `"generic"`**.
+
+If **no** embedded photographs, graphs, infographics, or generic visuals exist in the screenshot, output:
+
+{{
+  "detected_visuals": []
+}}
+
+
+---
+
+### **F. Additional Instructions**
 
 1. **Ignore All Page Text**  
    - We do **not** want a text summary or interpretation of the PDF page.  
-   - Describe **only** the identified photographs or graphs.
+   - Describe **only** the identified photographs, graphs, infographics, or generic visuals.
 
 2. **Be Thorough and Factual**  
-   - For photographs: note key details like color, setting, visible subjects or objects.  
-   - For graphs: note axes labels, data points, color usage, notable data patterns, numeric values (if visible).
+   - For **photographs**: note key details like color, setting, visible subjects or objects.  
+   - For **graphs**: note axes labels, data points, color usage, notable data patterns, numeric values (if visible).  
+   - For **infographics**: note the integrated visuals, icons, short textual elements, layout, and overall design approach.  
+   - For **generic**: note any stylized drawings or visuals that don’t fall under the other categories.
 
 3. **No Overarching Page Summaries**  
    - Avoid describing textual paragraphs, headings, or overall page layout.  
-   - Keep descriptions strictly about the photo/graph content.
+   - Keep descriptions strictly about the photo, graph, infographic, or generic visualization content.
 
 4. **Completeness**  
-   - If multiple photographs or graphs exist, **describe each** as a separate element in the array.  
+   - If multiple visuals exist, **describe each** as a separate element in the array.  
    - If none exist, return the empty array.
 
 5. **Analysis vs Contextual Relevance**  
-   - **`contextual_relevance`**: Briefly indicate how or why the photo or graph might tie into the document’s content. (e.g., “Likely included to show office culture.” or “Possibly illustrating sales trends.”)  
+   - **`contextual_relevance`**: Briefly indicate how or why the visual might tie into the document’s content.  
    - **`analysis`**: Additional insights or commentary on the data, scene, or significant details (e.g., outlier values, unique setting, potential symbolic meaning, etc.).
 
 ---
 
-## **5 Few-Shot Examples**
+## **G. Few-Shot Examples (Existing)**
 
-Below are **5** sample outputs in the desired JSON format. Each showcases how to describe photographs vs. graphs. Notice how we unify them in a **single** `"detected_graphs_or_photos"` list.
+Below you will find **all nine examples** revised with more **elaborate and descriptive** text, reflecting the requirement that each description should be sufficiently detailed for a user to **reconstruct** the visual in question. 
 
 ---
 
-### **Example 1: No Embedded Photographs or Graphs**
+## **Example 1: No Embedded Visuals**
 
 
 {{
-  "detected_graphs_or_photos": []
+  "detected_visuals": []
 }}
 
 
-**Explanation**  
-- The screenshot contains no visuals beyond text, or nothing that qualifies as a photo/graph.  
-- Return an empty list.
+**Explanation (not part of output)**  
+- This screenshot contains no visuals beyond text, or nothing that qualifies as a photo, graph, infographic, or generic.  
+- Hence, the list is empty.
 
 ---
 
-### **Example 2: One Photograph, No Graphs**
+## **Example 2: One Photograph, No Graphs**
 
 
 {{
-  "detected_graphs_or_photos": [
+  "detected_visuals": [
     {{
-      "graph_or_photo_explanation": "This is a photograph showing a cozy café interior. Several wooden tables, each with small potted plants, are arranged neatly. Large windows let in natural light, and a chalkboard menu is visible behind the counter. The color palette is warm, featuring beige walls and dark-brown furniture.",
-      "contextual_relevance": "Possibly included to depict a typical meeting spot or casual workspace relevant to the document's topic.",
-      "analysis": "The photo emphasizes a relaxed atmosphere, possibly illustrating a social setting. The presence of a chalkboard menu suggests a casual café environment. Natural light might be important to highlight the space’s inviting feel.",
-      "image_type": "photo"
+      "visual_description": "This is a photograph capturing the interior of a small, cozy café. The seating area includes roughly five wooden tables spaced evenly in a single row. Each table is rectangular, seats up to four people, and has a small potted plant in the center. The walls are painted in a warm beige tone, which complements the dark-brown wooden furniture. Large windows on one side allow abundant natural light to filter in, illuminating the space and creating a welcoming ambiance. At the back of the café, a chalkboard menu can be seen mounted on the wall, listing various beverages and snacks in white handwritten text. The floor is tiled in a light shade, possibly a cream or tan color, and a soft glow from overhead lighting fixtures adds to the cozy atmosphere. No patrons are visible in the shot, emphasizing the café’s setup rather than customer presence.",
+      "contextual_relevance": "It may have been included to illustrate a casual environment or gathering space referenced in the document, perhaps suggesting where meetings or informal discussions could occur.",
+      "analysis": "The photograph highlights a comfortable, relaxed setting with neutral tones and understated décor. The presence of natural light, simple furnishings, and a chalkboard menu suggests an inviting neighborhood café atmosphere. This setting can indicate themes of approachability, community, or informal collaboration within the document.",
+      "visual_type": "photo"
     }}
   ]
 }}
 
 
-**Explanation**  
-- Only one embedded photograph was found.  
-- Keys match `EmbeddedImage` schema: `"graph_or_photo_explanation"`, `"contextual_relevance"`, and `"analysis"`.
-
 ---
 
-### **Example 3: One Graph, No Photographs**
+## **Example 3: One Graph, No Photographs**
 
 
 {{
-  "detected_graphs_or_photos": [
+  "detected_visuals": [
     {{
-      "graph_or_photo_explanation": "This is a bar chart comparing three product categories (Electronics, Furniture, and Grocery) across two quarters, Q1 and Q2. The x-axis labels the quarters, while the y-axis shows 'Sales in Thousands USD'. Each category is represented by a color-coded bar, with individual values like 15, 20, 30, etc.",
-      "contextual_relevance": "Likely included to illustrate quarter-over-quarter performance for key product categories in the document’s sales discussion.",
-      "analysis": "Electronics appear to have the highest bar overall, with a notable jump between Q1 and Q2. Furniture shows moderate growth, while Grocery remains relatively stable. The chart visually emphasizes a significant revenue increase in Electronics from Q1 to Q2.",
-      "image_type": "graph"
+      "visual_description": "A bar chart designed to compare sales figures for three product categories—Electronics, Furniture, and Grocery—across two quarters (Q1 and Q2). On the x-axis, you have two grouped sections, one labeled 'Q1' and the other labeled 'Q2'. Within each group on the x-axis, there are three bars side-by-side, each corresponding to one of the product categories. The y-axis is labeled 'Sales in Thousands USD', ranging in increments of 5 from 0 up to 30 or 35. In Q1, Electronics is represented by a blue bar that reaches up to 15 on the y-axis, Furniture by a green bar at 10, and Grocery by an orange bar at 8. In Q2, the Electronics bar (blue) extends to 25, the Furniture bar (green) to 15, and the Grocery bar (orange) to 10. A small legend in the upper-right corner indicates the color-coding: blue for Electronics, green for Furniture, orange for Grocery. The chart has a title at the top, 'Quarterly Sales Comparison', in bold. Minor grid lines run horizontally behind the bars, aiding in reading approximate values. The design is clean with minimal text, focusing on the difference between Q1 and Q2 sales for each category.",
+      "contextual_relevance": "This chart is presumably featured to illustrate quarter-over-quarter performance differences in various product segments, which might be part of a larger sales or financial analysis in the document.",
+      "analysis": "The visible jump in Electronics from 15 to 25 thousand USD is significant, indicating strong demand or marketing focus. Furniture shows moderate growth, while Grocery has a smaller increase. This suggests that Electronics drives the most notable revenue change, possibly justifying strategic shifts or emphasis in the broader context.",
+      "visual_type": "graph"
     }}
   ]
 }}
 
 
-**Explanation**  
-- A single graph was identified.  
-- No photographs, so the array has only one object describing a bar chart.
-
 ---
 
-### **Example 4: Multiple Photographs and Graphs**
+## **Example 4: Multiple Photographs and Graphs**
 
 
 {{
-  "detected_graphs_or_photos": [
+  "detected_visuals": [
     {{
-      "graph_or_photo_explanation": "This is a photograph of a conference room with a long table, eight chairs, and a large digital screen mounted on the wall. The flooring appears to be polished wood, and tall windows on one side reveal a city skyline.",
-      "contextual_relevance": "Might be used to show corporate infrastructure or meeting spaces relevant to the document’s content.",
-      "analysis": "The image highlights a modern, well-lit environment. The presence of the digital screen suggests a technologically equipped space, possibly signifying a boardroom or teamwork setting.",
-      "image_type": "photo"
+      "visual_description": "A photograph depicting a modern conference room. The primary focal point is a long rectangular table made of dark wood, accommodating eight high-backed chairs with a minimalist design. A large digital screen or smart TV is mounted on the far wall, facing the table. Below the screen is a small console or credenza where cables might be stored. The floor appears to be polished hardwood, and one side of the room features tall windows with a view of a city skyline—skyscrapers and rooftops are visible in the distance. The walls are painted in a neutral light-gray tone, and recessed overhead lighting illuminates the space evenly. There are no people in the room, allowing the viewer to see the entire layout unobstructed.",
+      "contextual_relevance": "Likely included to showcase the corporate setting or to underline available meeting facilities in relation to the document’s content (perhaps referencing office infrastructure or professional workspaces).",
+      "analysis": "The modern and well-lit environment, along with the presence of a digital screen, suggests a high-tech meeting area. This could reflect a professional ambiance, implying that the document may address corporate culture, conference planning, or organizational resources.",
+      "visual_type": "photo"
     }},
     {{
-      "graph_or_photo_explanation": "This is a pie chart showing a distribution of customer feedback ratings. Slices are labeled from 1 star up to 5 stars. The largest slice, around 40%, corresponds to 4-star ratings, followed by about 30% at 5-star ratings.",
-      "contextual_relevance": "Likely included to demonstrate user satisfaction levels or feedback trends, tying into the broader context of customer research.",
-      "analysis": "The chart reveals that the majority of feedback is between 4 and 5 stars, indicating generally positive customer experiences. Fewer slices represent 1 or 2 stars, suggesting minimal negative feedback.",
-      "image_type": "graph"
+      "visual_description": "A circular pie chart showing a breakdown of customer feedback ratings, labeled from 1 star to 5 stars. The chart is divided into five slices, each distinctly colored. The 1-star slice, colored red, constitutes about 5% of the circle. The 2-star slice, in orange, comprises around 10%. The 3-star slice, in yellow, is about 15%. The 4-star slice, in teal, makes up roughly 40%, forming the largest slice. The 5-star slice, in blue, accounts for about 30%. A small legend beside the pie chart indicates the color-star mapping. Labels around the chart also show the corresponding percentage next to each slice. The chart title reads 'Customer Feedback Ratings', and there's a brief note below it stating 'Based on 200 Survey Responses'. No additional data or subcategories are visible, focusing solely on star-based satisfaction levels.",
+      "contextual_relevance": "It likely appears to illustrate how customers perceive the product or service, tying into a customer satisfaction or quality assessment portion of the document.",
+      "analysis": "With 4- and 5-star ratings comprising the majority (70%), it indicates overall positive reception. However, the presence of lower ratings (5% at 1 star, 10% at 2 stars) suggests that some improvements might still be necessary. This visual underscores a generally favorable view, aligning with potential claims about customer satisfaction in the document.",
+      "visual_type": "graph"
     }}
   ]
 }}
 
 
-**Explanation**  
-- Two embedded items: one photograph and one graph.  
-- Each object stands alone with the required keys.
-
 ---
 
-### **Example 5: Mixed Scenario – Three Items**
+## **Example 5: Mixed Scenario – Three Items**
 
 
 {{
-  "detected_graphs_or_photos": [
+  "detected_visuals": [
     {{
-      "graph_or_photo_explanation": "This is a photograph of a bustling outdoor market scene. Vendors in colorful tents display fresh produce. People are walking between stalls, and there is a backdrop of historic buildings under a clear blue sky.",
-      "contextual_relevance": "Potentially included to show local culture or tourism highlights in the document.",
-      "analysis": "The variety of colors draws attention to the lively atmosphere. The historic architecture in the background implies a culturally rich setting.",
-      "image_type": "photo"
+      "visual_description": "A photograph capturing a lively outdoor market scene. Roughly six canvas tents or stalls are lined up in two rows, each covered by a colorful awning—red, yellow, and green—protecting fresh produce from direct sunlight. Vendors can be seen behind the tables, with baskets of fruits and vegetables like apples, tomatoes, peppers, and lettuces. Several shoppers, dressed in casual summer clothing, are browsing. Some carry reusable bags filled with produce. The ground appears to be stone or cobblestone. In the background, a row of historic-looking buildings in a light pastel color palette is partially visible, along with a clear blue sky overhead. The scene exudes a bustling, community-oriented ambiance.",
+      "contextual_relevance": "Potentially included to highlight local culture, an example of community commerce, or a tourism-related aspect of the document.",
+      "analysis": "The vibrant stalls and variety of fresh goods emphasize a dynamic local market environment. The presence of historic architecture suggests a culturally rich setting, possibly underscoring themes of tradition, sustainability, or regional charm in the document.",
+      "visual_type": "photo"
     }},
     {{
-      "graph_or_photo_explanation": "This is a flowchart depicting a four-step project process: Planning, Development, Testing, and Launch. Each step is represented by a rectangular node, connected by arrows. A diamond-shaped decision node before the Testing phase indicates a 'Review' step.",
-      "contextual_relevance": "Likely supports a section in the document explaining a project lifecycle methodology.",
-      "analysis": "The flowchart emphasizes a linear progression with a built-in checkpoint at Review. Arrows clearly illustrate the path from one phase to the next, suggesting an iterative or gated process.",
-      "image_type": "graph"
+      "visual_description": "A simplified flowchart representing a four-step process. In sequential order from left to right, the steps are labeled Planning, Development, Testing, and Launch. Each stage is depicted as a rectangular box with an arrow leading to the next. Before Testing, there is a diamond-shaped decision node labeled 'Review Approval?'. If 'Yes', the arrow continues to Testing; if 'No', an arrow loops back up to the Development stage. Each shape is outlined in black with a white fill, and text labels are in bold black font. Minimal color usage is observed—only the arrows are blue. No numerical data or metrics appear, but the layout clearly emphasizes an iterative cycle if the review fails. A small note under the flowchart says 'Project Lifecycle v2.0'.",
+      "contextual_relevance": "Likely illustrates the core methodology or framework for a project, as discussed in a relevant section of the document.",
+      "analysis": "The design highlights a linear progression with a gatekeeping review process. By sending the process back to Development upon a 'No' decision, it emphasizes iterative refinement. This aligns with standard project lifecycle models, underscoring thorough quality checks before proceeding.",
+      "visual_type": "graph"
     }},
     {{
-      "graph_or_photo_explanation": "This is another photograph, featuring a high-angle shot of a modern open-plan office. Rows of desks, each equipped with a laptop, are arranged under bright overhead lighting. A seating area with a small couch and coffee table is visible in one corner.",
-      "contextual_relevance": "Might be demonstrating workspace design or illustrating a segment about corporate culture.",
-      "analysis": "The layout suggests a collaborative environment. The presence of comfortable seating near desks points to a flexible, employee-friendly setup.",
-      "image_type": "photo"
+      "visual_description": "Another photograph, this time showing a modern open-plan office from a slightly elevated perspective. Approximately ten desks are arranged in rows, each equipped with a silver laptop and a small desk lamp. The flooring is a light gray carpet, and overhead lighting consists of rectangular LED panels that emit bright, cool-white illumination. In one corner is a small lounge area: a two-seater couch in dark gray fabric, paired with a low wooden coffee table. Potted plants with broad leaves add a touch of greenery, positioned near the windows. Floor-to-ceiling glass panels run along one wall, revealing an urban skyline similar to the background in the other photo, suggesting continuity of the same building or area.",
+      "contextual_relevance": "Possibly included to demonstrate a collaborative workspace design or modern office environment relevant to the document’s discussion on organizational culture or infrastructure.",
+      "analysis": "With a clean, functional layout and integrated lounge space, the office suggests a blend of productivity and comfort. The presence of multiple identical workstations points to a standardized, possibly tech-driven environment. This could reflect themes of flexible collaboration and contemporary work culture in the larger text.",
+      "visual_type": "photo"
     }}
   ]
 }}
 
 
-**Explanation**  
-- Three embedded items detected: two photographs (market scene, open-plan office) and one graph (flowchart).  
-- Each item is an object with the three required keys.
+---
+
+## **Example 6: One Infographic, No Photos or Graphs**
+
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "An infographic visually communicating a 3-step process to complete an online application. The steps are arranged vertically in stacked rectangular boxes. Step 1 is labeled 'Register an Account' and includes a small icon of a user silhouette next to the text. Step 2 is labeled 'Fill Out the Form' with an icon of a clipboard displaying lines, suggesting form fields. Step 3 is labeled 'Submit Documents' with an icon of a folder and an upward arrow. Each box is shaded in a light, contrasting color: Step 1 in pastel green, Step 2 in pastel orange, and Step 3 in pastel blue. Arrows connect the steps in descending order. A heading at the top reads 'How to Apply', and a short text block near the bottom says, 'Questions? Contact our Support.' Surrounding the main boxes are small decorative elements, such as checkmarks and file icons. The background is a light blue gradient, making the steps pop out. Taken together, it resembles a short flow of instructions with simple visuals to reinforce each stage.",
+      "contextual_relevance": "Likely added to succinctly guide the reader through a key application procedure outlined in the document, making the steps easier to grasp at a glance.",
+      "analysis": "The infographic’s minimalist style and color-coded steps help break down a potentially complex process. By pairing each step with an icon, it offers both textual and visual clues. This is useful for readers who might learn visually, reinforcing clarity and memorability.",
+      "visual_type": "infographic"
+    }}
+  ]
+}}
+
 
 ---
 
-### **How These Examples Meet the Requirements**
-1. **Single JSON Object** with the key `"detected_graphs_or_photos"`.  
-2. If no images are found, the list is empty.  
-3. Each item in the list is an object containing:  
-   - **`graph_or_photo_explanation`** – The principal description of the visual content.  
-   - **`contextual_relevance`** – A short note on its likely purpose or connection to the document’s theme.  
-   - **`analysis`** – Any deeper commentary, patterns observed, or interpretive notes.
+## **Example 7: Mixed – Photo, Graph, and Infographic**
 
-Use this prompt whenever you need to parse a PDF page screenshot, focusing on **photographs** and **graphs** only, and output them in the **`EmbeddedImages`** style data structure.
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A photograph of a bright reception area in a contemporary office setting. The foreground features a sleek reception desk made of glossy white material with a polished wooden countertop, behind which is a high-backed office chair. Two minimalist chairs, likely for guests, are positioned in front of the desk. A prominently placed company logo in bold metallic lettering is mounted on the wall behind the desk. On either side, tall potted plants—perhaps snake plants—add a touch of greenery. The floor is a polished gray tile, reflecting overhead lighting. The overall color palette is neutral with accents of warm wood and green from the plants.",
+      "contextual_relevance": "Potentially used to illustrate the corporate environment or highlight branding elements tied to the organization discussed in the document.",
+      "analysis": "The crisp lines and focus on branded elements (logo, cohesive color scheme) indicate a professional, modern space designed to impress visitors upon entry. The presence of greenery underscores a welcoming, possibly eco-friendly stance.",
+      "visual_type": "photo"
+    }},
+    {{
+      "visual_description": "A line chart depicting monthly website traffic over a 12-month period, from January to December. The x-axis labels each month by its first three letters (Jan, Feb, Mar, etc.), while the y-axis indicates the number of visits in thousands, ranging from 0 at the bottom to 50 at the top, in increments of 5. A single curved line plots the traffic trend, starting at 20, dipping to 18 in February, rising steadily to a peak of 35 in July, gradually tapering off to around 25 by December. Each plotted point is marked with a small circle, labeled with the exact numeric value (e.g., 20k, 18k, 25k, etc.). A subtle grid spans the background, helping to read each data point. A legend in the top-right corner simply shows 'Website Visits' as a black square matching the line’s color, presumably black or dark blue. The chart title, 'Monthly Web Traffic (Year 2024)', is centered at the top in bold font.",
+      "contextual_relevance": "Included to illustrate fluctuations in user engagement or marketing performance across the year, possibly part of a broader digital strategy section.",
+      "analysis": "The mid-year spike could indicate seasonal interest or a successful campaign, whereas the dip later in the year might suggest reduced promotional activity. The chart effectively tracks these trends visually, aiding discussions around conversion timing or budget allocations.",
+      "visual_type": "graph"
+    }},
+    {{
+      "visual_description": "An infographic summarizing key performance indicators (KPIs) for a sales team in one combined visual. At the top, a bold heading reads 'Sales Team KPIs at a Glance'. Beneath it, four separate panels or sections are arranged horizontally: (1) 'Conversion Rate' at 15%, with a green upward arrow and a small icon of a handshake; (2) 'Customer Churn' at 5%, with a red downward arrow and an icon of a broken chain link; (3) 'Quarterly Revenue' at $500k, depicted with a bar-like gauge partially filled to represent some target threshold; (4) 'Lead Response Time' at 2 hours, visualized with a small clock icon. Each panel has a distinct color (e.g., panel 1 is light green, panel 2 is light red, etc.), matching the arrow color to convey immediate impressions: green for positive, red for negative. Small text callouts below each KPI provide a one-sentence explanation, for instance, '15% is above our target of 12%'. The overall layout is neat, with icons and short textual elements guiding the viewer through each metric quickly.",
+      "contextual_relevance": "Likely serves as an at-a-glance summary of major metrics for stakeholders, tying in with a section discussing the team's performance or overall company health.",
+      "analysis": "By combining color-coded arrows, icons, and short textual data, the infographic communicates crucial sales stats in a visually compelling manner. It highlights both positive results (conversion and revenue) and potential areas of concern (churn). The multi-panel layout helps readers immediately compare different KPIs in one place.",
+      "visual_type": "infographic"
+    }}
+  ]
+}}
+
+
+---
+
+## **Example 8: A Decorative Illustration (Generic)**
+
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "An abstract illustration featuring a silhouette of a person seated under a stylized tree whose branches spiral outward in swirling patterns. The tree trunk is rendered in a dark charcoal hue, while the swirling branches shift through gradients of green and blue, reminiscent of broad brushstrokes. The person is shown in a meditative posture, reading a book propped on their lap, though facial details are absent. The background is lightly textured in pastel pink, with subtle circular shapes giving a dreamy feel. There is no real-world perspective or shading, emphasizing a conceptual rather than realistic style. No numeric or textual data is included, and the piece appears purely decorative or symbolic.",
+      "contextual_relevance": "Might be included to evoke themes of knowledge, growth, or creativity, possibly accompanying a section on personal development or imaginative thinking.",
+      "analysis": "The swirling patterns above the figure imply the expansive and organic nature of learning or ideas. The absence of precise detail draws focus to the symbolic representation of intellectual growth or introspection. It likely serves as a visually appealing or motivational element in the document.",
+      "visual_type": "generic"
+    }}
+  ]
+}}
+
+
+---
+
+## **Example 9: Icon Collage (Generic)**
+
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A grouped collage of three icons laid out in a triangular arrangement on a plain white background. The first icon is a lightbulb (symbolizing 'ideas' or 'innovation'), drawn in bright yellow with a small black filament detail inside. The second is a gear (representing 'settings' or 'mechanics') in medium gray with multiple teeth around its perimeter. The third icon is a heart shape (indicating 'favorite' or 'like') in a soft red or pink hue. Each icon is roughly the same size, around one inch in height, and they are spaced evenly so that they form the vertices of a triangle with some empty space in the center. No additional text, numeric data, or decorative elements are included. The style is flat and minimalist, with no shading or gradients.",
+      "contextual_relevance": "Possibly utilized to highlight key concepts—innovation, mechanism, and preference—relating to a thematic discussion in the document, such as product features or user engagement areas.",
+      "analysis": "By clustering these icons, the illustration draws parallel importance to the ideas they represent. Since there's no textual explanation, the user must infer meaning from the iconography. The minimalistic approach indicates a decorative or symbolic accent rather than a data-driven or photographic display.",
+      "visual_type": "generic"
+    }}
+  ]
+}}
+
+
+---
+
+### **How to Use or Adapt These Examples**
+
+- **Maintain the single JSON object structure** with the key `"detected_visuals"`.  
+- **Include an array of objects**—each object describes **one visual**: photo, graph, infographic, or generic visualization.  
+- If no visuals exist, return an **empty array** for `"detected_visuals"`.  
+- Ensure your `visual_description` is **detailed enough** for the user to reconstruct the visual, especially in the case of graphs or infographics.  
+
