@@ -54,8 +54,13 @@ class DocumentIngestionJob():
         result = self.index_builder.index_documents(search_units, {"text":"text_vector"})
         return result
     
+    
     def execute_job(self):
+        print("[DocumentIngestionJob] execute_job() -> Starting PDF ingestion job...")
         self.process_pdf()
+        print("[DocumentIngestionJob] execute_job() -> Storing PDF content...")
         self.store_pdf_content()
+        print("[DocumentIngestionJob] execute_job() -> Indexing PDF content...")
         self.index_pdf_content()
+        print("[DocumentIngestionJob] execute_job() -> Job complete, returning final DocumentContent.")
         return self.document

@@ -8,7 +8,6 @@ from azure.identity import DefaultAzureCredential
 from azure.mgmt.appcontainers import ContainerAppsAPIClient
 from azure.mgmt.appcontainers.models import *
 
-from env_vars import AML_SUBSCRIPTION_ID, AML_RESOURCE_GROUP
 
 class ACAJob:
     def __init__(self):

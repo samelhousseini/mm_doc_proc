@@ -265,6 +265,34 @@ class AzureBlobStorage:
         )
         return f"{self.account_url}/{safe_container}/{safe_blob}?{sas_token}"
 
+    def upload_file_and_get_sas_url(self, file_path: str, container_name: str) -> str:
+        """
+        Uploads the specified file to the given container, then returns a full SAS URL
+        that grants read/write/delete permissions for 7 days.
+
+        :param file_path: The local path of the file to upload.
+        :param container_name: The name of the container where the file should be uploaded.
+        :return: A string containing the full SAS URL to the uploaded blob.
+        """
+        # 1) Ensure container exists (create if missing)
+        safe_container = self._safe_container_name(container_name)
+        self.create_container(safe_container)
+
+        # 2) Derive a blob name from the file name
+        blob_name = os.path.basename(file_path)
+
+        # 3) Upload the file to Blob Storage
+        print(f"Uploading {file_path} to container '{safe_container}'...")
+        full_blob_uri = self.upload_blob(safe_container, blob_name, file_path)
+
+        # 4) Create a SAS URL granting read/write/delete for 7 days
+        print("Generating SAS URL...")
+        sas_url = self.create_sas_url(safe_container, blob_name)
+
+        print("Upload complete. SAS URL:", sas_url)
+        return sas_url
+
+
     # --------------------------------------------------------------------------
     # Recursive Folder Upload/Download
     # (Optional if you still want to keep them, not strictly needed for the data model)
