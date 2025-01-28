@@ -72,42 +72,37 @@ class DynamicAzureIndexBuilder:
     then store them in the index for vector/hybrid search.
     """
 
-    def __init__(
-        self,
-        endpoint: str,
-        api_key: str,
-        index_name: str,
-        embedding_model_info: EmbeddingModelnfo,
-        vector_profile_name: str = "myHnswProfile"
-    ):
+    def __init__(self, search_config: AISearchConfig):
         """
         :param endpoint: Your Azure Cognitive Search endpoint (e.g. https://<NAME>.search.windows.net)
         :param api_key: The Admin key for the search service
         :param index_name: The name of your index (must be lowercase in Azure Search)
         """
-        self.endpoint = endpoint
-        self.api_key = api_key
-        self.index_name = index_name.lower()
-        self.embedding_model_info = embedding_model_info
-        self.vector_profile_name = vector_profile_name
+        self.search_config = search_config
+        self.endpoint = search_config.search_endpoint
+        self.api_key = search_config.search_api_key
+        self.index_name = search_config.index_name.lower()
+        self.embedding_model_info = search_config.embedding_model_info
+        self.vector_profile_name = search_config.vector_profile_name
         self.key_field_name = None
 
         # Clients
         self.index_client = SearchIndexClient(
-            endpoint=endpoint,
-            credential=AzureKeyCredential(api_key)
+            endpoint=search_config.search_endpoint,
+            credential=AzureKeyCredential(search_config.search_api_key)
         )
         self.search_client = SearchClient(
-            endpoint=endpoint,
+            endpoint=search_config.search_endpoint,
             index_name=self.index_name,
-            credential=AzureKeyCredential(api_key)
+            credential=AzureKeyCredential(search_config.search_api_key)
         )
 
         self.search_clients = [SearchClient(
-            endpoint=endpoint,
+            endpoint=search_config.search_endpoint,
             index_name=self.index_name,
-            credential=AzureKeyCredential(api_key)
+            credential=AzureKeyCredential(search_config.search_api_key)
         ) for _ in range(25)]
+
 
     def build_index(
         self,
@@ -206,7 +201,7 @@ class DynamicAzureIndexBuilder:
     # 1) UPLOAD MODEL INSTANCES WITH EMBEDDINGS
     # https://github.com/Azure/azure-search-vector-samples/blob/main/demo-python/code/basic-vector-workflow/azure-search-vector-python-sample.ipynb
     ###########################################################################
-    def upload_documents(
+    def index_documents(
         self,
         model_objects: List[BaseModel],
         embedding_fields: Optional[dict] = None
@@ -410,12 +405,6 @@ class DynamicAzureIndexBuilder:
                     formatted_result[key] = value
             formatted_results.append(formatted_result)
         return formatted_results
-    
-
-
-
-
-
 
 
     @staticmethod

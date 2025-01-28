@@ -1,0 +1,6 @@
+azure-core
+azure-identity
+azure-mgmt-appcontainers
+azure-containerregistry
+azure-mgmt-containerregistry
+azure-mgmt-resource

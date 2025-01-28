@@ -173,7 +173,7 @@ cython_debug/
 
 output*/
 sample_data_1/
-
+test_*.py
 test1.ipynb
 test.ipynb
 test*.ipynb
@@ -184,3 +184,5 @@ env_vars.py
 
 old_*.*
 downloaded_files/
+
+.vscode/

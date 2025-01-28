@@ -20,7 +20,7 @@ class ProcessingPipelineConfiguration(BaseModel):
     process_images: bool = True
     process_tables: bool = True
     save_text_files: bool = True
-    generate_condensed_text: bool = True
-    generate_table_of_contents: bool = True
+    generate_condensed_text: bool = False
+    generate_table_of_contents: bool = False
     translate_full_text: List[str] = []
     translate_condensed_text: List[str] = []

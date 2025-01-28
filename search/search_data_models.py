@@ -1,8 +1,20 @@
 from pydantic import BaseModel
 from typing import Optional, List, Literal
+from utils.openai_data_models import *
 from multimodal_processing_pipeline.data_models import *
 
+
+class AISearchConfig(BaseModel):
+    index_name: str
+    search_endpoint: str = os.getenv("AZURE_AI_SEARCH_SERVICE_NAME")
+    search_api_key: str = os.getenv("AZURE_AI_SEARCH_API_KEY")
+    embedding_model_info: EmbeddingModelnfo = EmbeddingModelnfo(model_name="text-embedding-3-large", dimensions=3072)
+    convert_post_processing_units: bool = False
+    vector_profile_name: Optional[str] = "myHnswProfile"
+
+
 class SearchParams(BaseModel):
+    search_mode: Literal["hybrid", "wide"] = "hybrid"
     vector_fields: str = "text_vector"
     unit_type: Optional[Literal["text", "image", "table"]] = None
     top: int = 3

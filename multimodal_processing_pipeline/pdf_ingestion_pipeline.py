@@ -200,13 +200,11 @@ class PDFIngestionPipeline:
         Extract raw text from a PDF page, process it using GPT (if configured),
         and save to: pages/page_{page_number}/page_{page_number}.txt
         """
-        processed_or_raw_text = False
         text = page.get_text()
 
         if self.processing_pipeline_config.process_text:
             console.print("Processing text with GPT...")
             text = process_text(text, page_image_path, model_info=self._text_model)
-            processed_or_raw_text = True
 
         console.print("[bold magenta]Extracted/Processed Text:[/bold magenta]", text)
 
@@ -218,7 +216,6 @@ class PDFIngestionPipeline:
 
         extracted_text = ExtractedText(
             page_number=page_number,
-            processed_or_raw_text=processed_or_raw_text,
             text=DataUnit(
                 text=text,
                 text_file_path=convert_path(str(text_filename)),
@@ -481,6 +478,94 @@ class PDFIngestionPipeline:
 
         return tables_list
 
+    
+    def _load_post_processing_files(self, document_content: DocumentContent) -> None:
+        """
+        Loads any existing post-processing output files (text_twin, condensed_text,
+        table_of_contents, translations, etc.) from the pipeline’s output directory
+        into the document_content.post_processing_content.
+        """
+        if not document_content.post_processing_content:
+            document_content.post_processing_content = PostProcessingContent()
+
+        # -----------------
+        # 1) text_twin.md
+        # -----------------
+        text_twin_path = self.output_directory / "text_twin.md"
+        if text_twin_path.is_file():
+            twin_text = text_twin_path.read_text(encoding="utf-8")
+            document_content.full_text = twin_text
+            document_content.post_processing_content.full_text = DataUnit(
+                text=twin_text,
+                text_file_path=str(text_twin_path)
+            )
+
+        # ----------------------
+        # 2) condensed_text.md
+        # ----------------------
+        condensed_path = self.output_directory / "condensed_text.md"
+        if condensed_path.is_file():
+            condensed_text = condensed_path.read_text(encoding="utf-8")
+            document_content.post_processing_content.condensed_text = DataUnit(
+                text=condensed_text,
+                text_file_path=str(condensed_path)
+            )
+
+        # -------------------------
+        # 3) table_of_contents.md
+        # -------------------------
+        toc_path = self.output_directory / "table_of_contents.md"
+        if toc_path.is_file():
+            toc_text = toc_path.read_text(encoding="utf-8")
+            document_content.post_processing_content.table_of_contents = DataUnit(
+                text=toc_text,
+                text_file_path=str(toc_path)
+            )
+
+        # ------------------------------------------------
+        # 4) document_content.json (document_json DataUnit)
+        # ------------------------------------------------
+        doc_json_path = self.output_directory / "document_content.json"
+        if doc_json_path.is_file():
+            # We typically load the actual DocumentContent from here,
+            # but if you just want to track it in post_processing_content:
+            document_content.post_processing_content.document_json = DataUnit(
+                text="",  # or store the JSON string if you prefer
+                text_file_path=str(doc_json_path)
+            )
+
+        # ------------------------------------
+        # 5) translations in ./translations/
+        # ------------------------------------
+        translations_dir = self.output_directory / "translations"
+        if translations_dir.is_dir():
+            # Initialize lists if needed
+            if not document_content.post_processing_content.translated_full_texts:
+                document_content.post_processing_content.translated_full_texts = []
+            if not document_content.post_processing_content.translated_condensed_texts:
+                document_content.post_processing_content.translated_condensed_texts = []
+
+            # Example patterns for filenames: full_text_fr.txt, condensed_text_es.txt
+            for file in translations_dir.glob("*.txt"):
+                filename = file.name
+                file_text = file.read_text(encoding="utf-8")
+                # e.g. "full_text_fr.txt" => group(1)="full_text", group(2)="fr"
+                m = re.match(r"^(full_text|condensed_text)_(\w+)\\.txt$", filename)
+                if m:
+                    text_type = m.group(1)  # "full_text" or "condensed_text"
+                    lang = m.group(2)      # e.g. "fr"
+
+                    data_unit = DataUnit(
+                        text=file_text,
+                        language=lang,
+                        text_file_path=str(file)
+                    )
+
+                    if text_type == "full_text":
+                        document_content.post_processing_content.translated_full_texts.append(data_unit)
+                    else:
+                        document_content.post_processing_content.translated_condensed_texts.append(data_unit)
+
 
     def _process_page_with_state(self, page_number: int) -> PageContent:
         """
@@ -616,6 +701,9 @@ class PDFIngestionPipeline:
             self._post_processing_steps(document)
             self.pipeline_state.post_processing_done = True
             self._save_pipeline_state()
+        else:
+            # Load post-processing files if already done
+            self._load_post_processing_files(document)
 
         # Save the entire DocumentContent as JSON in the output root
         self.save_document_content_json(document)

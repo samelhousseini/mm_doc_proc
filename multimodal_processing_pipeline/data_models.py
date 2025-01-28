@@ -102,7 +102,6 @@ class ExtractedText(BaseModel):
     """
     page_number: int
     text: Optional[DataUnit] = None  # Text processed (e.g., cleaned up or summarized)
-    processed_or_raw_text: Optional[bool] = False  # True if the text is processed, False if raw
 
 
 class ExtractedImage(BaseModel):
