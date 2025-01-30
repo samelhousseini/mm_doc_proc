@@ -30,7 +30,7 @@ class DocumentIngestionJob():
         self.document = None
         self.index_builder = None
         self.search_config = search_config
-
+        self.index_builder =  DynamicAzureIndexBuilder(self.search_config)
 
     def process_pdf(self):
         # Instantiate the pipeline
@@ -45,16 +45,14 @@ class DocumentIngestionJob():
         self.document = self.storage.upload_document_content(self.document)
 
     
-    def index_pdf_content(self):     
-        self.index_builder =  DynamicAzureIndexBuilder(self.search_config)
+    def index_pdf_content(self):             
         vector_search, semantic_search = build_configurations(embedding_model_info=self.index_builder.embedding_model_info)
         self.index_builder.create_or_update_index(SearchUnit, vector_search=vector_search, semantic_search=semantic_search)
-
         search_units = DynamicAzureIndexBuilder.document_content_to_search_units(self.document, convert_post_processing_units=self.search_config.convert_post_processing_units)
         result = self.index_builder.index_documents(search_units, {"text":"text_vector"})
         return result
     
-    
+
     def execute_job(self):
         print("[DocumentIngestionJob] execute_job() -> Starting PDF ingestion job...")
         self.process_pdf()

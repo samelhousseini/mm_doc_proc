@@ -60,6 +60,7 @@ pool = ThreadPool(25)
 
 
 
+
 class DynamicAzureIndexBuilder:
     """
     A dynamic builder that can:
@@ -324,7 +325,7 @@ class DynamicAzureIndexBuilder:
 
 
 
-    def widen_step_search(self,
+    def wide_search_step(self,
         query: str,
         search_client: SearchClient = None,
         search_params: SearchParams = SearchParams(),
@@ -354,7 +355,7 @@ class DynamicAzureIndexBuilder:
         return list(composite_results)
     
 
-    def widen_search(
+    def wide_search(
         self,
         query: str,
         search_params: SearchParams = SearchParams(),
@@ -373,7 +374,7 @@ class DynamicAzureIndexBuilder:
         console.print("Expanded Terms:", expanded_terms)
 
         search_terms = [query] + expanded_terms.expanded_terms[:search_params.top_wide_search] + expanded_terms.related_areas[:search_params.top_wide_search]
-        search_results = pool.starmap(self.widen_step_search, zip(search_terms, 
+        search_results = pool.starmap(self.wide_search_step, zip(search_terms, 
                                                                   self.search_clients[:len(search_terms)], 
                                                                   [search_params]*len(search_terms)))
 

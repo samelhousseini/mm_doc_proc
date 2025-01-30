@@ -13,10 +13,18 @@ from utils.text_utils import *
 from search_data_models import *
 
 
+module_directory = os.path.dirname(os.path.abspath(__file__))
+
+
+def locate_search_prompt(prompt_name, module_directory=module_directory):
+    return locate_prompt(prompt_name, module_directory)
+
+
 
 
 def expand_searh_terms(query, model_info=None):
-    search_expansion_prompt = read_asset_file('search/search_prompts/search_expansion_prompt.txt')[0]
+    prompt_path = locate_search_prompt('search_expansion_prompt.txt')
+    search_expansion_prompt = read_asset_file(prompt_path)[0]
     prompt = search_expansion_prompt.format(query=query)
 
     response = call_llm_structured_outputs(

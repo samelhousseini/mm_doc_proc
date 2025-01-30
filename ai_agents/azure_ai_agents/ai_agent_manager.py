@@ -3,6 +3,9 @@ from PIL import Image
 from typing import Optional, List, Any, Dict
 from pathlib import Path
 
+import sys
+sys.path.append('.')
+
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import (
     RunStatus,
@@ -31,7 +34,7 @@ from azure.ai.projects.models import (
 )
 
 # Import your data models
-from ai_agent_data_models import (
+from ai_agents.azure_ai_agents.ai_agent_data_models import (
     AgentConfiguration,
     ChatMessage,
     ChatRunStep,
@@ -77,7 +80,11 @@ class AIAgentManager:
       - Azure Monitor tracing is enabled by default (if your project supports it).
     """
 
-    def __init__(self, connection_string: str, config: AgentConfiguration):
+    def __init__(self, 
+                 connection_string: str = os.getenv("FOUNDRY_PROJECT", ""),
+                 config: AgentConfiguration = AgentConfiguration()
+                 ):
+
         self.config = config
         self.client = AIProjectClient.from_connection_string(
             credential=DefaultAzureCredential(),
@@ -210,11 +217,14 @@ class AIAgentManager:
         console.print(f"[bold green]Created new thread: {thread.id}[/bold green]")
         return thread.id
 
-    def chat_in_thread(self, thread_id: str, user_message: str, stream: bool = False) -> ChatResponse:
+    def chat_in_thread(self, user_message: str, thread_id: str = None, stream: bool = False) -> ChatResponse:
         """
         Append a user message to an existing thread, run the agent,
         and return a ChatResponse for that thread.
         """
+        if thread_id is None:
+            thread_id = self.create_new_thread()
+
         span_name = f"chat_in_thread_{thread_id}"
         if self.tracer:
             with self.tracer.start_as_current_span(span_name):
@@ -311,6 +321,7 @@ class AIAgentManager:
             thread_id=thread_id,
             run_id=run_id,
             status=run_status,
+            answer=chat_messages[0].content,
             messages=chat_messages,
             run_steps=run_steps,
             file_ids=file_ids,

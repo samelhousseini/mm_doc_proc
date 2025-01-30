@@ -22,7 +22,7 @@ from tenacity import (
 )
 
 from utils.text_utils import recover_json
-from multimodal_processing_pipeline.data_models import *
+# from multimodal_processing_pipeline.data_models import *
 from utils.openai_data_models import *
 from utils.file_utils import convert_png_to_jpg, get_image_base64
 

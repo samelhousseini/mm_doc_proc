@@ -20,18 +20,18 @@ class AgentConfiguration(BaseModel):
     - vector_store_ids: If file search is used, list of vector store IDs. 
     - top_p, temperature, etc.: Additional parameters for the chat model if desired.
     """
-    name: str = "my-assistant"
-    model: str = "gpt-4"
-    instructions: str = "You are a helpful assistant."
+    name: str = "multimodal-doc-proc-assistant"
+    model: str = "gpt-4o"
+    instructions: str = "You are a helpful assistant, that assists with searching multimodal documents."
     
-    enable_bing: bool = False
-    bing_connection_name: Optional[str] = None
+    enable_bing: bool = True
+    bing_connection_name: Optional[str] = "bing-grounding"
     
     enable_azure_search: bool = False
     azure_search_connection_name: Optional[str] = None
     azure_search_index_name: Optional[str] = None
     
-    enable_code_interpreter: bool = False
+    enable_code_interpreter: bool = True
     
     enable_file_search: bool = False
     vector_store_ids: Optional[List[str]] = None  # If file_search is used, provide vector store IDs
@@ -67,6 +67,7 @@ class ChatResponse(BaseModel):
     run_id: Optional[str]  # Might be None if no run was created
     status: str
 
+    answer: str
     messages: List[ChatMessage]
     run_steps: List[ChatRunStep]
     file_ids: List[str] = []

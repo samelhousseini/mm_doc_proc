@@ -42,6 +42,6 @@ class DocumentIngestionJob():
         if search_params.search_mode == "hybrid":
             results = self.index_builder.hybrid_search(query=query, search_params=search_params)
         else:
-            results = self.index_builder.widen_search(query=query, search_params=search_params)
+            results = self.index_builder.wide_search(query=query, search_params=search_params)
 
         return results

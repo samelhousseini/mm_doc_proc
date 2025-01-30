@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List, Literal
 from utils.openai_data_models import *
 from multimodal_processing_pipeline.data_models import *
+from ai_agents.azure_ai_agents.ai_agent_data_models import *
+
 
 
 class AISearchConfig(BaseModel):
@@ -20,7 +22,8 @@ class SearchParams(BaseModel):
     top: int = 3
     top_wide_search: int = 3
     exhaustive: bool = False
-    query_type: Literal["semantic", "keyword"] = "semantic"
+    query_type: Literal["semantic", "keyword"] = "semantic" # this will be ignored when using wide_search()
+    use_code_interpreter: bool = True
 
 
 class SearchExpansion(BaseModel):
@@ -42,7 +45,31 @@ class SearchUnit(BaseModel):
     text_vector: Optional[List[float]] = None  
 
 
+
 class SearchResult(BaseModel):    
+    final_answer: str
+    table_list: List[str]
+    references: List[int]
+
+
+class MultiModalSearchResponse(BaseModel):
+    search_response: SearchResult
+    agent_response: Optional[ChatResponse] = None
+
+
+class UISearchResult(BaseModel):    
     search_unit: SearchUnit
     reference_id: int
+
+
+class UISearchResults(BaseModel):
+    search_results: List[UISearchResult]
+    search_expansion: Optional[SearchExpansion] = None
+    search_params: SearchParams
+    search_time: float
+    search_mode: Literal["hybrid", "wide"]
+    search_query: str
+    search_query_type: Literal["semantic", "keyword"]
+
+
     
