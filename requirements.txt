@@ -12,3 +12,5 @@ tiktoken
 tenacity
 rich
 pytest
+azure-cosmos
+azure-mgmt-cosmosdb

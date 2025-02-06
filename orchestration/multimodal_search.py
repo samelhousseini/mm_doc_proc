@@ -125,7 +125,7 @@ class MultimodalSearch():
 
         search_prompt_template = read_asset_file(locate_search_prompt('multimodal_search_prompt.txt'))[0]
         prompt = search_prompt_template.format(query=query, context=context)
-
+        console.print("\n\nPrompt:\n", prompt)
         answer = call_llm_structured_outputs(
             prompt,
             model_info=model_info,

@@ -43,6 +43,7 @@ class SearchUnit(BaseModel):
     page_image_cloud_storage_path: Optional[str] = None  # Path to the image file in cloud storage
     text: str
     text_vector: Optional[List[float]] = None  
+    tags: Optional[List[str]] = None  
 
 
 

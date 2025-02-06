@@ -525,6 +525,9 @@ class AzureBlobStorage:
         if post_proc.full_text:
             self._upload_data_unit(container_name, post_proc.full_text, blob_prefix=None)
 
+        for step in post_proc.custom_document_processing_steps:
+            self._upload_data_unit(container_name, step, blob_prefix=None)
+
         if post_proc.document_json:
             self._upload_data_unit(container_name, post_proc.document_json, blob_prefix=None)
 
@@ -581,6 +584,9 @@ class AzureBlobStorage:
         # 2) Upload the combined page_text (DataUnit)
         if page_content.page_text:
             self._upload_data_unit(container_name, page_content.page_text, blob_prefix=page_prefix)
+
+        for step in page_content.custom_page_processing_steps:
+            self._upload_data_unit(container_name, step, blob_prefix=page_prefix)
 
         # 3) Upload the extracted text (ExtractedText -> DataUnit)
         if page_content.text and page_content.text.text:

@@ -409,7 +409,9 @@ class DynamicAzureIndexBuilder:
 
 
     @staticmethod
-    def document_content_to_search_units(doc_content: DocumentContent, convert_post_processing_units: bool = False) -> List[SearchUnit]:
+    def document_content_to_search_units(doc_content: DocumentContent, 
+                                         convert_custom_processing_units: bool = False,
+                                         convert_post_processing_units: bool = False) -> List[SearchUnit]:
         """
         Generate a list of SearchUnit entries for indexing (text, images, tables).
         """
@@ -430,6 +432,20 @@ class DynamicAzureIndexBuilder:
                         page_image_cloud_storage_path=page.text.text.page_image_cloud_storage_path
                     )
                 )
+
+                if convert_custom_processing_units:
+                    for step in page.custom_page_processing_steps:
+                        search_units.append(
+                            SearchUnit(
+                                metadata=metadata.model_dump(),
+                                page_number=page.page_number,
+                                page_image_path=convert_path(str(page.page_image_path)),
+                                unit_type="text",
+                                text=step.text,
+                                text_file_cloud_storage_path=step.text_file_cloud_storage_path,
+                                page_image_cloud_storage_path=step.page_image_cloud_storage_path
+                            )
+                    )
 
             # 2) Each embedded image's text
             for image in page.images:
@@ -468,7 +484,7 @@ class DynamicAzureIndexBuilder:
                 search_units.append(
                     SearchUnit(
                         metadata=metadata.model_dump(),
-                        page_number=-1,
+                        page_number=0,
                         page_image_path="",
                         unit_type="text",
                         text=ppc.condensed_text.text,
@@ -477,11 +493,25 @@ class DynamicAzureIndexBuilder:
                     )
                 )
 
+            if convert_custom_processing_units:
+                for step in page.custom_document_processing_steps:
+                    search_units.append(
+                        SearchUnit(
+                            metadata=metadata.model_dump(),
+                            page_number=0,
+                            page_image_path="",
+                            unit_type="text",
+                            text=step.text,
+                            text_file_cloud_storage_path=step.text_file_cloud_storage_path,
+                            page_image_cloud_storage_path=step.page_image_cloud_storage_path
+                        )
+                    )
+
             if ppc.table_of_contents and ppc.table_of_contents.text and ppc.table_of_contents.text.strip():
                 search_units.append(
                     SearchUnit(
                         metadata=metadata.model_dump(),
-                        page_number=-2,
+                        page_number=0,
                         page_image_path="",
                         unit_type="text",
                         text=ppc.table_of_contents.text,
@@ -494,7 +524,7 @@ class DynamicAzureIndexBuilder:
                 search_units.append(
                     SearchUnit(
                         metadata=metadata.model_dump(),
-                        page_number=-3,
+                        page_number=0,
                         page_image_path="",
                         unit_type="text",
                         text=ppc.full_text.text,

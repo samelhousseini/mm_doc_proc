@@ -1,4 +1,4 @@
-import os
+import os, time
 from PIL import Image
 from typing import Optional, List, Any, Dict
 from pathlib import Path
@@ -24,9 +24,11 @@ from azure.identity import DefaultAzureCredential
 
 from opentelemetry import trace
 from azure.monitor.opentelemetry import configure_azure_monitor
+from azure.ai.projects.models import FunctionTool, RequiredFunctionToolCall, SubmitToolOutputsAction, ToolOutput
 
 # Tools
 from azure.ai.projects.models import (
+    ToolSet,
     BingGroundingTool,
     AzureAISearchTool,
     CodeInterpreterTool,
@@ -83,28 +85,42 @@ class AIAgentManager:
     def __init__(self, 
                  connection_string: str = os.getenv("FOUNDRY_PROJECT", ""),
                  config: AgentConfiguration = AgentConfiguration()
-                 ):
+                ):
 
+        
         self.config = config
         self.client = AIProjectClient.from_connection_string(
             credential=DefaultAzureCredential(),
             conn_str=connection_string
         )
 
-        application_insights_connection_string = self.client.telemetry.get_connection_string()
-        if application_insights_connection_string:
-            configure_azure_monitor(connection_string=application_insights_connection_string)
-            self.tracer = trace.get_tracer(__name__)
+        if config.enable_tracing:
+            application_insights_connection_string = self.client.telemetry.get_connection_string()
+            if application_insights_connection_string:
+                configure_azure_monitor(connection_string=application_insights_connection_string)
+                self.tracer = trace.get_tracer(__name__)
+            else:
+                print("Application Insights is not enabled for this project.")
+                print("Enable it via the 'Tracing' tab in your AI Foundry project page.")
+                self.tracer = None
         else:
-            print("Application Insights is not enabled for this project.")
-            print("Enable it via the 'Tracing' tab in your AI Foundry project page.")
+            print("Tracing is not enabled for this project.")
+            print("Please change the 'enable_tracing' flag in your AgentConfiguration.")
             self.tracer = None
 
+
+        self.user_functions = config.user_functions
+        self.agent_tools = None
         self.agent = self._get_or_create_agent()
+
 
     def _get_or_create_agent(self):
         agents_list = self.client.agents.list_agents()
         found_agent = None
+
+        if self.user_functions is not None:
+            self.agent_tools = FunctionTool(functions=self.user_functions)
+
         for item in agents_list.data:
             if item["name"] == self.config.name:
                 found_agent = item
@@ -117,6 +133,11 @@ class AIAgentManager:
         else:
             tools_definitions = []
             resources = None
+
+            if self.agent_tools is not None: # User-defined functions
+                tools_definitions.extend(self.agent_tools.definitions)
+                if self.agent_tools.resources:
+                    resources = self.agent_tools.resources
 
             # Bing
             if self.config.enable_bing and self.config.bing_connection_name:
@@ -160,12 +181,27 @@ class AIAgentManager:
                     else:
                         resources.file_search = fs_tool.resources.file_search
 
+
+            code_interpreter = CodeInterpreterTool()
+            bing_conn = self.client.connections.get(connection_name=self.config.bing_connection_name)
+            bing_tool = BingGroundingTool(connection_id=bing_conn.id)
+
+            toolset = ToolSet()
+            toolset.add(self.agent_tools)
+            toolset.add(code_interpreter)
+            toolset.add(bing_tool)
+
+
+            console.print("Tools", tools_definitions)
+            console.print("Resources", resources)
+
             new_agent = self.client.agents.create_agent(
                 model=self.config.model,
                 name=self.config.name,
                 instructions=self.config.instructions,
-                tools=tools_definitions if tools_definitions else None,
+                # tools=tools_definitions if tools_definitions else None,
                 tool_resources=resources if resources else None,
+                toolset=toolset,
                 temperature=self.config.temperature,
                 top_p=self.config.top_p
             )
@@ -180,6 +216,7 @@ class AIAgentManager:
         Single-turn usage. Creates a brand new thread every time.
         """
         span_name = f"chat_with_{self.config.name}"
+        
         if self.tracer:
             with self.tracer.start_as_current_span(span_name):
                 return self._chat_impl(user_message, stream)
@@ -246,16 +283,18 @@ class AIAgentManager:
         )
 
         # Run
-        run_id, run_status = self._run_agent(thread_id, stream=stream)
+        run_id, run_status, tool_outputs = self._run_agent(thread_id, stream=stream)
 
         # Build response
-        return self._build_chat_response(thread_id=thread_id, run_id=run_id, run_status=run_status)
+        return self._build_chat_response(thread_id=thread_id, run_id=run_id, run_status=run_status, tool_outputs=tool_outputs)
 
     def _run_agent(self, thread_id: str, stream: bool) -> (Optional[str], str):
         """
         Helper method to either do streaming or blocking run,
         and return (run_id, run_status).
         """
+        all_tool_outputs = []
+
         if stream:
             event_handler = MyEventHandler()
             with self.client.agents.create_stream(
@@ -272,10 +311,54 @@ class AIAgentManager:
             else:
                 return (None, "unknown")
         else:
-            run = self.client.agents.create_and_process_run(thread_id=thread_id, assistant_id=self.agent.id)
-            return (run.id, run.status)
+            
+            # run = self.client.agents.create_and_process_run(thread_id=thread_id, assistant_id=self.agent.id)
+            run = self.client.agents.create_run(thread_id=thread_id, assistant_id=self.agent.id)
 
-    def _build_chat_response(self, thread_id: str, run_id: Optional[str], run_status: str) -> ChatResponse:
+            while run.status in ["queued", "in_progress", "requires_action"]:
+                time.sleep(1)
+                run = self.client.agents.get_run(thread_id=thread_id, run_id=run.id)
+                print("Status:", run.status)
+
+                if run.status == "requires_action":
+                    # run = self.client.agents.get_run(thread_id=thread_id, run_id=run.id)
+                    print("Run requires action:", str(run.required_action))
+                    if run.status == "requires_action" and isinstance(run.required_action, SubmitToolOutputsAction):
+                        tool_calls = run.required_action.submit_tool_outputs.tool_calls
+                        console.print(f"Tool calls required: {tool_calls}")
+                        if not tool_calls:
+                            print("No tool calls provided - cancelling run")
+                        else:
+                            tool_outputs = []
+                            for tool_call in tool_calls: 
+                                if isinstance(tool_call, RequiredFunctionToolCall):
+                                    try:
+                                        print(f"Executing tool call: {tool_call}")
+                                        output = self.agent_tools.execute(tool_call)
+                                        tool_outputs.append(
+                                            ToolOutput(
+                                                tool_call_id=tool_call.id,
+                                                output=output,
+                                            )
+                                        )
+                                        all_tool_outputs.append(output)
+                                    except Exception as e:
+                                        print(f"Error executing tool_call {tool_call.id}: {e}")
+
+                            print(f"Tool outputs: {tool_outputs}")
+                            if tool_outputs:
+                                self.client.agents.submit_tool_outputs_to_run(
+                                    thread_id=thread_id, run_id=run.id, tool_outputs=tool_outputs
+                                )
+
+                        print(f"Current run status: {run.status}")
+                    else:
+                        print(f"Unhandled required action: {run.required_action}")
+
+            print(f"Run completed with status: {run.status}")
+            return (run.id, run.status, all_tool_outputs)
+
+    def _build_chat_response(self, thread_id: str, run_id: Optional[str], run_status: str, tool_outputs: List[Dict] = []) -> ChatResponse:
         """
         Gathers final messages, run steps, and file references for the thread,
         returning a ChatResponse.
@@ -325,7 +408,8 @@ class AIAgentManager:
             messages=chat_messages,
             run_steps=run_steps,
             file_ids=file_ids,
-            downloaded_files=downloaded_paths
+            downloaded_files=downloaded_paths,
+            tool_outputs=tool_outputs
         )
 
     # -------------------------------------------------
@@ -365,7 +449,8 @@ class AIAgentManager:
         # annotated files
         for fa in messages.file_path_annotations:
             file_id = fa.file_path.file_id
-            file_name = f"{file_id}_annotated"
+            console.print(f"[Files] Downloading: {file_id} from annotation:", fa)
+            file_name = f"{file_id}_{os.path.basename(fa.text)}"
             local_path = os.path.join(target_dir, file_name)
             self.client.agents.save_file(file_id=file_id, file_name=file_name, target_dir=target_dir)
             file_paths.append(local_path)

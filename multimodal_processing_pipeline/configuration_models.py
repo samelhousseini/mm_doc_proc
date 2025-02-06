@@ -1,9 +1,21 @@
 import os
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List, Literal, Type, Union
+from typing import Optional, List, Literal, Type, Union, Any
 
 
 from data_models import *
+
+
+
+class CustomProcessingStep(BaseModel):
+    """
+    Custom processing step for a page.
+    """
+    name: str
+    prompt: str
+    data_model: Optional[Any] = None
+    ai_model: Optional[Union[TextProcessingModelnfo, MulitmodalProcessingModelInfo]] = MulitmodalProcessingModelInfo()
+
 
 
 class ProcessingPipelineConfiguration(BaseModel):
@@ -19,8 +31,11 @@ class ProcessingPipelineConfiguration(BaseModel):
     process_text: bool = True
     process_images: bool = True
     process_tables: bool = True
+    custom_page_processing_steps: List[CustomProcessingStep] = []
     save_text_files: bool = True
     generate_condensed_text: bool = False
     generate_table_of_contents: bool = False
     translate_full_text: List[str] = []
     translate_condensed_text: List[str] = []
+    custom_document_processing_steps: List[CustomProcessingStep] = []
+

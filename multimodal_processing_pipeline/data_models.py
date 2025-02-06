@@ -14,10 +14,11 @@ from utils.openai_data_models import *
 
 class PipelineState(BaseModel):
     text_extracted_pages: List[int] = []
+    custom_page_processing: List[int] = []
     images_extracted_pages: List[int] = []
     tables_extracted_pages: List[int] = []
     post_processing_done: bool = False
-
+    
     class Config:
         json_encoders = {
             set: list
@@ -134,18 +135,18 @@ class PageContent(BaseModel):
     tables: List[ExtractedTable]
     page_text: Optional[DataUnit] = None  # Final combined content for the page
     page_image_cloud_storage_path: Optional[str] = None  # Path to the image file in cloud storage
-
-
+    custom_page_processing_steps: Optional[List[DataUnit]] = []  # Custom processed page text
 
 
 class PostProcessingContent(BaseModel):
     condensed_text: Optional[DataUnit] = None
     table_of_contents: Optional[DataUnit] = None
     full_text: Optional[DataUnit] = None
-    document_json: Optional[DataUnit] = None
     translated_full_texts: Optional[List[DataUnit]] = None
     translated_condensed_texts: Optional[List[DataUnit]] = None
-    
+    custom_document_processing_steps: Optional[List[DataUnit]] = []  # Custom processed document text
+    document_json: Optional[DataUnit] = None
+
 
 class DocumentContent(BaseModel):
     """

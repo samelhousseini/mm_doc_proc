@@ -196,3 +196,79 @@ def translate_text(text, target_language, model_info=None):
     )
 
     return response
+
+
+
+
+def apply_custom_page_processing_prompt(page_text: str, 
+                                        custom_page_processing_prompt: str, 
+                                        response_format=None, 
+                                        model_info=None,
+                                        imgs=[]):
+    """
+    Apply custom processing to a page of text using a language model.
+        page_text (str): The text of the page to process.
+        custom_page_processing_prompt (str): Custom instructions for processing the page.
+        model_info (dict, optional): Information about the model configuration. Defaults to None.       
+
+    Returns:
+        str: The processed text as returned by the language model.
+    """
+    prompt_path = locate_ingestion_prompt('custom_page_processing_prompt_wrapper.txt')
+    custom_page_prompt = read_asset_file(prompt_path)[0]
+    prompt = custom_page_prompt.format(page_text=page_text, custom_instructions=custom_page_processing_prompt)
+
+    if response_format is None:
+        response = call_llm(
+            prompt,
+            model_info=model_info,
+            imgs=imgs
+        )
+    else:
+        response = call_llm_structured_outputs(
+            prompt=prompt,
+            model_info=model_info,
+            response_format=response_format,
+            imgs=imgs
+        )
+        
+        response = json.dumps(response.model_dump(), indent=4)
+
+    return response
+
+
+def apply_custom_document_processing_prompt(document_text: str, 
+                                            custom_document_processing_prompt: str,  
+                                            response_format=None, 
+                                            model_info=None,
+                                            imgs=[]):
+    """
+    Apply custom processing to a document using a language model.
+        page_text (str): The text of the document to process.
+        custom_page_processing_prompt (str): Custom instructions for processing the document.
+        model_info (dict, optional): Information about the model configuration. Defaults to None.       
+
+    Returns:
+        str: The processed text as returned by the language model.
+    """
+    prompt_path = locate_ingestion_prompt('custom_document_processing_prompt_wrapper.txt')
+    custom_page_prompt = read_asset_file(prompt_path)[0]
+    prompt = custom_page_prompt.format(document_text=document_text, custom_instructions=custom_document_processing_prompt)
+
+    if response_format is None:
+        response = call_llm(
+            prompt,
+            model_info=model_info,
+            imgs=imgs
+        )
+    else:
+        response = call_llm_structured_outputs(
+            prompt=prompt,
+            model_info=model_info,
+            response_format=response_format,
+            imgs=imgs
+        )
+
+        response = json.dumps(response.model_dump(), indent=4)
+
+    return response

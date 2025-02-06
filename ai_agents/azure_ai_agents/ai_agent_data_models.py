@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, List, Any, Union, Dict
+from typing import Optional, List, Any, Union, Dict, Callable, Set
 
 from pydantic import BaseModel
 
@@ -39,7 +39,8 @@ class AgentConfiguration(BaseModel):
     # Additional advanced params
     temperature: Optional[float] = None
     top_p: Optional[float] = None
-    # etc. (you can add more as needed)
+    enable_tracing: bool = False
+    user_functions: Set[Callable[..., Any]] = set()
 
 
 # ------------------------------------------------------------------
@@ -72,3 +73,4 @@ class ChatResponse(BaseModel):
     run_steps: List[ChatRunStep]
     file_ids: List[str] = []
     downloaded_files: List[str] = []
+    tool_outputs: List[str] = []

@@ -49,13 +49,16 @@ def prepare_image_messages(imgs):
     img_msgs = []
 
     for image_path_or_url in img_arr:
-        image_path_or_url = os.path.abspath(image_path_or_url)
-        try:
-            if os.path.splitext(image_path_or_url)[1] == ".png":
-                image_path_or_url = convert_png_to_jpg(image_path_or_url)
-            image = f"data:image/jpeg;base64,{get_image_base64(image_path_or_url)}"
-        except:
+        if image_path_or_url.startswith("http"):
             image = image_path_or_url
+        else:
+            image_path_or_url = os.path.abspath(image_path_or_url)
+            try:
+                if os.path.splitext(image_path_or_url)[1] == ".png":
+                    image_path_or_url = convert_png_to_jpg(image_path_or_url)
+                image = f"data:image/jpeg;base64,{get_image_base64(image_path_or_url)}"
+            except:
+                image = image_path_or_url
 
         img_msgs.append({ 
             "type": "image_url",
@@ -63,7 +66,7 @@ def prepare_image_messages(imgs):
                 "url": image
             }
         })
-
+    # console.print("Image messages prepared.")
     return img_msgs
 
 
@@ -81,7 +84,7 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
         {"role": "user", "content": "You are a helpful assistant that processes text and images."},
         {"role": "user", "content": content},
     ]
-
+    
     if model_info.client is None: model_info = instantiate_model(model_info)
 
     if model_info.model_name == "gpt-4o":
@@ -90,6 +93,10 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
         return call_o1(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
     elif model_info.model_name == "o1-mini":
         return call_o1_mini(messages, model_info.client, model_info.model)
+    elif model_info.model_name == "o3":
+        return call_o3(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
+    elif model_info.model_name == "o3-mini":
+        return call_o3_mini(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
     else:
         return call_4o(messages, model_info.client, model_info.model, temperature)
 
@@ -112,13 +119,22 @@ def call_o1_mini(messages,  client, model):
     response = client.chat.completions.create(model=model, messages=messages)
     return response.model_dump()['choices'][0]['message']['content']
        
+def call_o3(messages,  client, model, reasoning_effort ="medium"): 
+    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
+    return response.model_dump()['choices'][0]['message']['content']
+
+def call_o3_mini(messages,  client, model, reasoning_effort ="medium"): 
+    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url} - Reasoning Effort: {reasoning_effort}\n")
+    response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
+    return response.model_dump()['choices'][0]['message']['content']
+
 
 
 def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextProcessingModelnfo], response_format, imgs=[]):
     content = [{"type": "text", "text": prompt}]
     content = content + prepare_image_messages(imgs)
     messages = [
-        {"role": "user", "content": "You are a helpful assistant that processes text and images to generate structured outputs."},
         {"role": "user", "content": content},
     ]
 
@@ -130,6 +146,10 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
         return call_llm_structured_o1(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
     elif model_info.model_name == "o1-mini":
         return call_llm_structured_o1_mini(messages, model_info.client, model_info.model, response_format)
+    elif model_info.model_name == "o3":
+        return call_llm_structured_o3(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
+    elif model_info.model_name == "o3-mini":
+        return call_llm_structured_o3_mini(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
     else:
         return call_llm_structured_4o(messages, model_info.client, model_info.model, response_format)
 
@@ -152,3 +172,198 @@ def call_llm_structured_o1_mini(messages, client, model, response_format):
     response = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
     return response.choices[0].message.parsed
 
+
+def call_llm_structured_o3(messages, client, model, response_format, reasoning_effort ="medium"): 
+    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
+    return response.choices[0].message.parsed
+
+
+def call_llm_structured_o3_mini(messages, client, model, response_format, reasoning_effort ="medium"): 
+    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
+    return response.choices[0].message.parsed
+
+
+
+def process_function_call_result(result, functions):
+    """
+    Helper function to process results from function-calling completions.
+    If the finish_reason is "tool_calls" or "function_call", it extracts the function call details,
+    and if a mapping of functions is provided, it executes the corresponding function.
+    Returns either a list of function call messages or the plain content.
+    """
+    finish_reason = result.choices[0].finish_reason
+    if finish_reason in ["tool_calls", "function_call"]:
+        # For "function_call", wrap the function_call attribute in a list.
+        if finish_reason == "function_call":
+            tool_calls = [result.choices[0].message.function_call]
+        else:
+            tool_calls = result.choices[0].message.tool_calls
+
+        rets = {}
+        for f in tool_calls:
+            # Determine the function name and arguments based on the structure.
+            if hasattr(f, "function"):
+                fname = f.function.name
+                fargs = f.function.arguments
+            else:
+                fname = f.name
+                fargs = f.arguments
+
+            if not functions:
+                rets[fname] = fargs
+            else:
+                if fname in functions:
+                    rets[fname] = functions[fname](fargs)
+        
+        # For building the function_call_message, extract name and arguments from the first call.
+        if hasattr(tool_calls[0], "function"):
+            fname = tool_calls[0].function.name
+            fargs = tool_calls[0].function.arguments
+        else:
+            fname = tool_calls[0].name
+            fargs = tool_calls[0].arguments
+
+        call_id = getattr(tool_calls[0], "id", "function_call_default_id")
+        function_call_message = {
+            "tool_calls": [
+                {
+                    "id": call_id,
+                    "function": {
+                        "name": fname,
+                        "arguments": json.dumps(fargs),
+                    },
+                    "type": "function"
+                }
+            ],
+            "content": "",
+            "role": "assistant"
+        }
+        function_call_result_message = {
+            "role": "tool",
+            "name": fname,
+            "content": json.dumps(rets),
+            "tool_call_id": call_id
+        }
+        if not functions:
+            return [function_call_message]
+        else:
+            return [function_call_message, function_call_result_message]
+    else:
+        return result.choices[0].message.content
+
+
+
+
+
+def call_llm_functions(prompt_or_messages, tools, functions={}, temperature=0.2, model_info=None):
+    """
+    Top-level function to call the LLM with function calling support.
+    If a plain string prompt is provided, it creates a standard system+user message.
+    Depending on model_info, it dispatches to the appropriate model-specific function.
+    """
+    if isinstance(prompt_or_messages, str):
+        prompt = prompt_or_messages
+        messages = [
+            {"role": "user", "content": "You are a helpful assistant, who helps the user with their query. You are designed to take a decision on which function to call. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous."},
+            {"role": "user", "content": prompt}
+        ]
+    else:
+        messages = prompt_or_messages
+
+    if model_info.model_name == "gpt-4o":
+        return call_llm_functions_4o(messages, model_info, tools, functions, temperature)
+    elif model_info.model_name == "o1":
+        return call_llm_functions_o1(messages, model_info, tools, functions)
+    elif model_info.model_name == "o1-mini":
+        return call_llm_functions_o1_mini(messages, model_info, tools, functions)
+    elif model_info.model_name == "o3":
+        return call_llm_functions_o3(messages, model_info, tools, functions)
+    elif model_info.model_name == "o3-mini":
+        return call_llm_functions_o3_mini(messages, model_info, tools, functions)
+    else:
+        return call_llm_functions_4o(messages, model_info, tools, functions, temperature)
+
+
+def call_llm_functions_4o(messages, model_info, tools, functions, temperature):
+    """
+    Calls the LLM (gpt-4o) with function calling enabled.
+    """
+    if model_info.client is None:
+        model_info = instantiate_model(model_info)
+    client = model_info.client
+    result = client.chat.completions.create(
+        model=model_info.model,
+        temperature=temperature,
+        messages=messages,
+        functions=tools
+    )
+    return process_function_call_result(result, functions)
+
+
+def call_llm_functions_o1(messages, model_info, tools, functions):
+    """
+    Calls the LLM (o1) with function calling enabled.
+    Note: The temperature parameter is not used for o1 models.
+    """
+    if model_info.client is None:
+        model_info = instantiate_model(model_info)
+    client = model_info.client
+    response = client.chat.completions.create(
+        model=model_info.model,
+        messages=messages,
+        functions=tools,
+        reasoning_effort=model_info.reasoning_efforts
+    )
+    return process_function_call_result(response, functions)
+
+
+def call_llm_functions_o1_mini(messages, model_info, tools, functions):
+    """
+    Calls the LLM (o1-mini) with function calling enabled.
+    Note: The temperature parameter is not used for o1-mini models.
+    """
+    if model_info.client is None:
+        model_info = instantiate_model(model_info)
+    client = model_info.client
+    response = client.chat.completions.create(
+        model=model_info.model,
+        messages=messages,
+        functions=tools
+    )
+    return process_function_call_result(response, functions)
+
+
+def call_llm_functions_o3(messages, model_info, tools, functions):
+    """
+    Calls the LLM (o3) with function calling enabled.
+    Note: The temperature parameter is not used for o3 models.
+    """
+    if model_info.client is None:
+        model_info = instantiate_model(model_info)
+    client = model_info.client
+    response = client.chat.completions.create(
+        model=model_info.model,
+        messages=messages,
+        functions=tools,
+        reasoning_effort=model_info.reasoning_efforts
+    )
+    return process_function_call_result(response, functions)
+
+
+def call_llm_functions_o3_mini(messages, model_info, tools, functions):
+    """
+    Calls the LLM (o3-mini) with function calling enabled.
+    Note: The temperature parameter is not used for o3-mini models.
+    """
+    if model_info.client is None:
+        model_info = instantiate_model(model_info)
+    client = model_info.client
+    response = client.chat.completions.create(
+        model=model_info.model,
+        messages=messages,
+        functions=tools,
+        reasoning_effort=model_info.reasoning_efforts
+    )
+    return process_function_call_result(response, functions)
