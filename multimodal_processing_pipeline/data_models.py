@@ -46,6 +46,7 @@ class EmbeddedImage(BaseModel):
     visual_type: Literal["graph", "photo", "infographic", "generic"]
 
 
+
 class EmbeddedImages(BaseModel):
     """
     Used in LLM call structured output for image analysis.

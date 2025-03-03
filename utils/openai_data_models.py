@@ -15,6 +15,13 @@ def get_azure_endpoint(resource):
     return f"https://{resource}.openai.azure.com" if not "https://" in resource else resource
 
 
+azure_gpt_45_model_info = {
+    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_45'),
+    "KEY": os.getenv('AZURE_OPENAI_KEY_45'),
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_45'),
+    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_45')
+}
+
 
 azure_gpt_4o_model_info = {
     "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_4O'),
@@ -78,6 +85,11 @@ azure_large_embedding_model_info = {
     "DIMS": 3072
 }
 
+openai_gpt_45_model_info = {
+    "KEY": os.getenv('OPENAI_API_KEY'),
+    "MODEL": os.getenv('OPENAI_MODEL_4O')
+}
+
 openai_gpt_4o_model_info = {
     "KEY": os.getenv('OPENAI_API_KEY'),
     "MODEL": os.getenv('OPENAI_MODEL_4O')
@@ -118,7 +130,7 @@ class MulitmodalProcessingModelInfo(BaseModel):
     Information about the multimodal model name.
     """
     provider: Literal["azure", "openai"] = "azure"
-    model_name: Literal["gpt-4o", "o1"] = "gpt-4o"
+    model_name: Literal["gpt-4o", "gpt-45", "o1"] = "gpt-4o"
     reasoning_efforts: Optional[Literal["low", "medium", "high"]] = "medium"    
     endpoint: str = ""
     key: str = ""
@@ -134,7 +146,7 @@ class TextProcessingModelnfo(BaseModel):
     Information about the multimodal model name.
     """
     provider: Literal["azure", "openai"] = "azure"
-    model_name: Literal["gpt-4o", "o1", "o1-mini", "o3", "o3-mini"] = "gpt-4o"
+    model_name: Literal["gpt-4o", "gpt-45", "o1", "o1-mini", "o3", "o3-mini"] = "gpt-4o"
     reasoning_efforts: Optional[Literal["low", "medium", "high"]] = "medium"    
     endpoint: str = ""
     key: str = ""
@@ -172,6 +184,12 @@ def instantiate_model(model_info: Union[MulitmodalProcessingModelInfo,
             model_info.key = azure_gpt_4o_model_info["KEY"]
             model_info.model = azure_gpt_4o_model_info["MODEL"]
             model_info.api_version = azure_gpt_4o_model_info["API_VERSION"]
+
+        elif model_info.model_name == "gpt-45":
+            model_info.endpoint = get_azure_endpoint(azure_gpt_45_model_info["RESOURCE"])
+            model_info.key = azure_gpt_45_model_info["KEY"]
+            model_info.model = azure_gpt_45_model_info["MODEL"]
+            model_info.api_version = azure_gpt_45_model_info["API_VERSION"]
 
         elif model_info.model_name == "o1":
             model_info.endpoint = get_azure_endpoint(azure_o1_model_info["RESOURCE"])
@@ -219,6 +237,10 @@ def instantiate_model(model_info: Union[MulitmodalProcessingModelInfo,
             model_info.key = openai_gpt_4o_model_info["KEY"]
             model_info.model = openai_gpt_4o_model_info["MODEL"]
 
+        if model_info.model_name == "gpt-45":
+            model_info.key = openai_gpt_45_model_info["KEY"]
+            model_info.model = openai_gpt_45_model_info["MODEL"]
+            
         elif model_info.model_name == "o1":
             model_info.key = openai_o1_model_info["KEY"]
             model_info.model = openai_o1_model_info["MODEL"]

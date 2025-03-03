@@ -9,7 +9,13 @@ import requests
 import json
 from typing import List
 from PIL import Image
-
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+    stop_after_delay,
+    after_log
+)
 from rich.console import Console
 console = Console()
 
@@ -21,14 +27,14 @@ from tenacity import (
     after_log
 )
 
-from utils.text_utils import recover_json
-# from multimodal_processing_pipeline.data_models import *
 from utils.openai_data_models import *
 from utils.file_utils import convert_png_to_jpg, get_image_base64
 
 
 
 def get_encoder(model = "gpt-4o"):
+    if model == "gpt-45":
+        return tiktoken.get_encoding("o200k_base")       
     if model == "gpt-4o":
         return tiktoken.get_encoding("o200k_base")       
     if model == "o1":
@@ -70,7 +76,7 @@ def prepare_image_messages(imgs):
     return img_msgs
 
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))             
 def get_embeddings(text : str, model_info: EmbeddingModelnfo = EmbeddingModelnfo()):
     if model_info.client is None: model_info = instantiate_model(model_info)
     return model_info.client.embeddings.create(input=[text], model=model_info.model_name).data[0].embedding
@@ -87,8 +93,8 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
     
     if model_info.client is None: model_info = instantiate_model(model_info)
 
-    if model_info.model_name == "gpt-4o":
-        return call_4o(messages, model_info.client, model_info.model, temperature)
+    if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
+        return call_4(messages, model_info.client, model_info.model, temperature)
     elif model_info.model_name == "o1":
         return call_o1(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
     elif model_info.model_name == "o1-mini":
@@ -98,32 +104,34 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
     elif model_info.model_name == "o3-mini":
         return call_o3_mini(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
     else:
-        return call_4o(messages, model_info.client, model_info.model, temperature)
+        return call_4(messages, model_info.client, model_info.model, temperature)
 
 
-
-def call_4o(messages, client, model, temperature = 0.2):
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_4(messages, client, model, temperature = 0.2):
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     result = client.chat.completions.create(model = model, temperature = temperature, messages = messages)
     return result.choices[0].message.content
       
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_o1(messages,  client, model, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
     return response.model_dump()['choices'][0]['message']['content']
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_o1_mini(messages,  client, model): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.chat.completions.create(model=model, messages=messages)
     return response.model_dump()['choices'][0]['message']['content']
-       
+
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))       
 def call_o3(messages,  client, model, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
     return response.model_dump()['choices'][0]['message']['content']
 
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_o3_mini(messages,  client, model, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url} - Reasoning Effort: {reasoning_effort}\n")
     response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
@@ -140,8 +148,8 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
 
     if model_info.client is None: model_info = instantiate_model(model_info)
 
-    if model_info.model_name == "gpt-4o":
-        return call_llm_structured_4o(messages, model_info.client, model_info.model, response_format)
+    if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
+        return call_llm_structured_4(messages, model_info.client, model_info.model, response_format)
     elif model_info.model_name == "o1":
         return call_llm_structured_o1(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
     elif model_info.model_name == "o1-mini":
@@ -151,34 +159,34 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
     elif model_info.model_name == "o3-mini":
         return call_llm_structured_o3_mini(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
     else:
-        return call_llm_structured_4o(messages, model_info.client, model_info.model, response_format)
+        return call_llm_structured_4(messages, model_info.client, model_info.model, response_format)
 
 
-
-def call_llm_structured_4o(messages, client, model, response_format):
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_llm_structured_4(messages, client, model, response_format):
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     completion = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
     return completion.choices[0].message.parsed
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_structured_o1(messages, client, model, response_format, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
     return response.choices[0].message.parsed
 
- 
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_structured_o1_mini(messages, client, model, response_format): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
     return response.choices[0].message.parsed
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_structured_o3(messages, client, model, response_format, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
     return response.choices[0].message.parsed
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_structured_o3_mini(messages, client, model, response_format, reasoning_effort ="medium"): 
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
@@ -194,9 +202,9 @@ def process_function_call_result(result, functions):
     Returns either a list of function call messages or the plain content.
     """
     finish_reason = result.choices[0].finish_reason
-    if finish_reason in ["tool_calls", "function_call"]:
+    if finish_reason in ["tool_calls", "function_call", "stop"]:
         # For "function_call", wrap the function_call attribute in a list.
-        if finish_reason == "function_call":
+        if (finish_reason == "function_call") or (finish_reason == "stop"):
             tool_calls = [result.choices[0].message.function_call]
         else:
             tool_calls = result.choices[0].message.tool_calls
@@ -272,8 +280,8 @@ def call_llm_functions(prompt_or_messages, tools, functions={}, temperature=0.2,
     else:
         messages = prompt_or_messages
 
-    if model_info.model_name == "gpt-4o":
-        return call_llm_functions_4o(messages, model_info, tools, functions, temperature)
+    if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
+        return call_llm_functions_4(messages, model_info, tools, functions, temperature)
     elif model_info.model_name == "o1":
         return call_llm_functions_o1(messages, model_info, tools, functions)
     elif model_info.model_name == "o1-mini":
@@ -283,10 +291,11 @@ def call_llm_functions(prompt_or_messages, tools, functions={}, temperature=0.2,
     elif model_info.model_name == "o3-mini":
         return call_llm_functions_o3_mini(messages, model_info, tools, functions)
     else:
-        return call_llm_functions_4o(messages, model_info, tools, functions, temperature)
+        return call_llm_functions_4(messages, model_info, tools, functions, temperature)
 
 
-def call_llm_functions_4o(messages, model_info, tools, functions, temperature):
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_llm_functions_4(messages, model_info, tools, functions, temperature):
     """
     Calls the LLM (gpt-4o) with function calling enabled.
     """
@@ -301,7 +310,7 @@ def call_llm_functions_4o(messages, model_info, tools, functions, temperature):
     )
     return process_function_call_result(result, functions)
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_functions_o1(messages, model_info, tools, functions):
     """
     Calls the LLM (o1) with function calling enabled.
@@ -318,7 +327,7 @@ def call_llm_functions_o1(messages, model_info, tools, functions):
     )
     return process_function_call_result(response, functions)
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_functions_o1_mini(messages, model_info, tools, functions):
     """
     Calls the LLM (o1-mini) with function calling enabled.
@@ -334,7 +343,7 @@ def call_llm_functions_o1_mini(messages, model_info, tools, functions):
     )
     return process_function_call_result(response, functions)
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_functions_o3(messages, model_info, tools, functions):
     """
     Calls the LLM (o3) with function calling enabled.
@@ -351,7 +360,7 @@ def call_llm_functions_o3(messages, model_info, tools, functions):
     )
     return process_function_call_result(response, functions)
 
-
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_functions_o3_mini(messages, model_info, tools, functions):
     """
     Calls the LLM (o3-mini) with function calling enabled.

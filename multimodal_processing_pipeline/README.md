@@ -46,7 +46,7 @@ The **PDF Ingestion Pipeline** reads a PDF file page by page, leverages multimod
 
 1. **Clone the Repository**: 
    ```bash
-   git clone https://github.com/samelhousseini/pdf-ingestion-pipeline.git
+   git clone https://github.com/samelhousseini/mm_doc_proc.git
    ```
 2. **Install Dependencies**:  
    ```bash

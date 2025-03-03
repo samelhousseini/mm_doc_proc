@@ -187,3 +187,5 @@ old_*.*
 downloaded_files/
 
 .vscode/
+
+bicep/
