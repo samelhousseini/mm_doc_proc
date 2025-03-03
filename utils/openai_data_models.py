@@ -272,6 +272,6 @@ def instantiate_model(model_info: Union[MulitmodalProcessingModelInfo,
         model_info.client = OpenAI(api_key=model_info.key)
 
 
-    console.print("Requested", model_info)
+    # console.print("Requested", model_info)
     
     return model_info
