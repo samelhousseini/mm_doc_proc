@@ -20,7 +20,7 @@ from azure.identity import DefaultAzureCredential, ClientSecretCredential
 from azure.cosmos import CosmosClient
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
-from azure.search.documents.models import Vector
+# from azure.search.documents.models import Vector
 import openai
 from dotenv import load_dotenv
 
