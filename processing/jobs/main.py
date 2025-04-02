@@ -24,6 +24,14 @@ from azure.search.documents.models import Vector
 import openai
 from dotenv import load_dotenv
 
+
+import sys
+sys.path.append("../../")
+
+from utils.openai_utils import *
+from utils.openai_data_models import *
+
+
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
@@ -78,5 +86,12 @@ class DocumentProcessor:
         try:
             self.credential = DefaultAzureCredential()
             logger.info("Using DefaultAzureCredential")
+
+            query = "Hello, how are you?"
+            model_info = MulitmodalProcessingModelInfo('gpt-4o')
+            response = call_llm(query, model_info=model_info)
+            print(response)
+            logger.info("LLM call successful:", response)
+
         except Exception:
             logger.info
