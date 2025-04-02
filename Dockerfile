@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better layer caching
-COPY requirements.txt .
+COPY requirements_aca_job.txt .
 RUN pip install --no-cache-dir -r requirements_aca_job.txt
 
 # Copy the application code
