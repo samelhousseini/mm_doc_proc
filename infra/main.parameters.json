@@ -1,0 +1,96 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourceGroupName": {
+      "value": "${AZURE_RESOURCE_GROUP=mmdocproc-rg}"
+    },
+    "location": {
+      "value": "${AZURE_RG_LOCATION=swedencentral}"
+    },
+    "baseName": {
+      "value": "mmdp"
+    },
+    "createResourceGroup": {
+      "value": true
+    },
+    "createOpenAi": {
+      "value": false
+    },
+    "openAiResourceName": {
+      "value": "${AZURE_OPENAI_RESOURCE_4O=aoai-res}"
+    },
+    "existingOpenAiApiKey": {
+      "value": "${AZURE_OPENAI_KEY_4O}"
+    },
+    "existingOpenAiResourceGroup": {
+      "value": "${AZURE_OPENAI_RESOURCE_GROUP=openai-resources}"
+    },
+    "existingOpenAiResource": {
+      "value": "${AZURE_OPENAI_RESOURCE_4O}"
+    },
+    "existingOpenAILocation": {
+      "value": "${AZURE_OPENAI_LOCATION=swedencentral}"
+    },
+    "gpt4oDeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_4O=gpt-4o}"
+    },
+    "o1DeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_O1=o1}"
+    },
+    "o1MiniDeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_O1_MINI=o1-mini}"
+    },
+    "o3MiniDeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_O3_MINI=o3-mini}"
+    },
+    "textEmbedding3LargeDeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_EMBEDDING_LARGE=text-embedding-3-large}"
+    },
+    "createLogAnalytics": {
+      "value": true
+    },
+    "logAnalyticsName": {
+      "value": null
+    },
+    "appInsightsName": {
+      "value": null
+    },
+    "createStorage": {
+      "value": true
+    },
+    "storageAccountName": {
+      "value": "mmstpd"
+    },
+    "uploadsContainerName": {
+      "value": "data"
+    },
+    "processedContainerName": {
+      "value": "processed"
+    },
+    "storageQueueName": {
+      "value": "doc-process-queue"
+    },
+    "createSearch": {
+      "value": true
+    },
+    "searchServiceName": {
+      "value": "mmdpsearch"
+    },
+    "existingSearchAdminKey": {
+      "value": "${AZURE_AI_SEARCH_API_KEY}"
+    },
+    "existingSearchResource": {
+      "value": "${AZURE_AI_SEARCH_SERVICE_NAME}"
+    },
+    "existingSearchResourceGroup": {
+      "value": "${AZURE_AI_SEARCH_SERVICE_RG}"
+    },
+    "searchSku": {
+      "value": "${AZURE_SEARCH_SKU=basic}"
+    }
+  }
+}
+
+
+

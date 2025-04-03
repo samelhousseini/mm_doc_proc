@@ -5,7 +5,6 @@ pymupdf
 pillow
 python-dotenv
 requests
-requests
 pydantic
 json-repair
 tiktoken
