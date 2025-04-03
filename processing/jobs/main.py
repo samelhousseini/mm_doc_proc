@@ -20,7 +20,7 @@ from azure.identity import DefaultAzureCredential, ClientSecretCredential
 from azure.cosmos import CosmosClient
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
-from azure.search.documents.models import Vector
+# from azure.search.documents.models import Vector
 import openai
 from dotenv import load_dotenv
 
@@ -123,6 +123,7 @@ class DocumentProcessor:
 
         except Exception:
             logger.info
+<<<<<<< HEAD
 
 
 # Get credential object
@@ -168,3 +169,5 @@ asyncio.run(receive_messages())
 
 # Close credential object when it's no longer needed
 asyncio.run(credential.close())            
+=======
+>>>>>>> 0994960c3a511b4e88af8acc251ce2c0e043749a
