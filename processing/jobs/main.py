@@ -41,7 +41,7 @@ from utils.openai_data_models import *
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler()
@@ -100,7 +100,16 @@ print(f"FULLY_QUALIFIED_NAMESPACE: {fully_qualified_namespace}")
 print(f"OUTPUT_QUEUE_NAME: {queue_name}")
 print(f"MAX_MESSAGE_COUNT: {max_message_count}")
 print(f"MAX_WAIT_TIME: {max_wait_time}")
-
+print(f"MIN_NUMBER: {MIN_NUMBER}")
+print(f"MAX_NUMBER: {MAX_NUMBER}")
+print(f"AZURE_STORAGE_ACCOUNT_NAME: {AZURE_STORAGE_ACCOUNT_NAME}")
+print(f"AZURE_STORAGE_UPLOAD_CONTAINER_NAME: {AZURE_STORAGE_UPLOAD_CONTAINER_NAME}")
+print(f"AZURE_STORAGE_OUTPUT_CONTAINER_NAME: {AZURE_STORAGE_OUTPUT_CONTAINER_NAME}")
+print(f"STORAGE_QUEUE_NAME: {STORAGE_QUEUE_NAME}")
+print(f"AZURE_OPENAI_RESOURCE_EMBEDDING_LARGE: {AZURE_OPENAI_RESOURCE_EMBEDDING_LARGE}")
+print(f"AZURE_OPENAI_KEY_EMBEDDING_LARGE: {AZURE_OPENAI_KEY_EMBEDDING_LARGE}")
+print(f"AZURE_OPENAI_MODEL_EMBEDDING_LARGE: {AZURE_OPENAI_MODEL_EMBEDDING_LARGE}")
+print(f"AZURE_OPENAI_API_VERSION_EMBEDDING_LARGE: {AZURE_OPENAI_API_VERSION_EMBEDDING_LARGE}")
 
 
 
@@ -128,14 +137,14 @@ class DocumentProcessor:
 
 
 # Get credential object
-credential = DefaultAzureCredential()
+credential = DefaultAzureCredential(logging_enable=True)
 
 async def receive_messages():
   # create a Service Bus client using the connection string
   async with ServiceBusClient(
     fully_qualified_namespace = fully_qualified_namespace,
     credential = credential,
-    logging_enable = False) as servicebus_client:
+    logging_enable = True) as servicebus_client:
 
     async with servicebus_client:
       # Get the Queue Receiver object for the input queue
