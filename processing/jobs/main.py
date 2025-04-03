@@ -32,6 +32,8 @@ from dotenv import dotenv_values
 
 import sys
 sys.path.append("../../")
+sys.path.append("../")
+sys.path.append(".")
 
 from utils.openai_utils import *
 from utils.openai_data_models import *
