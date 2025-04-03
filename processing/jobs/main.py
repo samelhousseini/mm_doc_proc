@@ -123,7 +123,6 @@ class DocumentProcessor:
 
         except Exception:
             logger.info
-<<<<<<< HEAD
 
 
 # Get credential object
@@ -163,11 +162,16 @@ async def receive_messages():
           except Exception as e:
             print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
             break
+          
+    try:
+       doc = DocumentProcessor()
+    except:
+        logger.error("Error initializing DocumentProcessor")
+        print("Error initializing DocumentProcessor")
+        raise
 
 # Receive messages from the input queue
 asyncio.run(receive_messages())
 
 # Close credential object when it's no longer needed
 asyncio.run(credential.close())            
-=======
->>>>>>> 0994960c3a511b4e88af8acc251ce2c0e043749a
