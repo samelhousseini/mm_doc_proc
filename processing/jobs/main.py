@@ -153,78 +153,78 @@ async def receive_messages():
       # Get the Queue Receiver object for the input queue
       receiver = servicebus_client.get_queue_receiver(queue_name = queue_name)
       async with receiver:
-        try:
-          received_msgs = await receiver.receive_messages(max_wait_time = max_wait_time, max_message_count = max_message_count)
+        # try:
+        received_msgs = await receiver.receive_messages(max_wait_time = max_wait_time, max_message_count = max_message_count)
 
-          if len(received_msgs) == 0:
-            return
-          for i, msg in enumerate(received_msgs):
-            # Check if message contains an integer value
-            try:
-              # For the main dictionary
-              topic = msg.get("topic")
-              subject = msg.get("subject")
-              eventType = msg.get("eventType")
-              id = msg.get("id")
-              data = msg.get("data")
-              dataVersion = msg.get("dataVersion")
-              metadataVersion = msg.get("metadataVersion")
-              eventTime = msg.get("eventTime")
+        if len(received_msgs) == 0:
+          return
+        for i, msg in enumerate(received_msgs):
+          # Check if message contains an integer value
+          # try:
+          # For the main dictionary
+          topic = msg.get("topic")
+          subject = msg.get("subject")
+          eventType = msg.get("eventType")
+          id = msg.get("id")
+          data = msg.get("data")
+          dataVersion = msg.get("dataVersion")
+          metadataVersion = msg.get("metadataVersion")
+          eventTime = msg.get("eventTime")
 
-              # For the nested data dictionary
-              api = data.get("api")
-              clientRequestId = data.get("clientRequestId")
-              requestId = data.get("requestId")
-              eTag = data.get("eTag")
-              contentType = data.get("contentType")
-              contentLength = data.get("contentLength")
-              blobType = data.get("blobType")
-              accessTier = data.get("accessTier")
-              url = data.get("url")
-              sequencer = data.get("sequencer")
-              storageDiagnostics = data.get("storageDiagnostics")
-              batchId = storageDiagnostics["batchId"]
+          # For the nested data dictionary
+          api = data.get("api")
+          clientRequestId = data.get("clientRequestId")
+          requestId = data.get("requestId")
+          eTag = data.get("eTag")
+          contentType = data.get("contentType")
+          contentLength = data.get("contentLength")
+          blobType = data.get("blobType")
+          accessTier = data.get("accessTier")
+          url = data.get("url")
+          sequencer = data.get("sequencer")
+          storageDiagnostics = data.get("storageDiagnostics")
+          batchId = storageDiagnostics["batchId"]
 
-              storage = AzureBlobStorage()
-              filename = url.split("/")[-1]
-              destination_file_path = os.path.join(os.getcwd(), filename)
-              storage.download_blob(container_name=AZURE_STORAGE_UPLOAD_CONTAINER_NAME, 
-                                    blob_name=filename, 
-                                    destination_file_path=destination_file_path)
-              
-              print(f"[{i}] Downloaded blob: {filename} to {destination_file_path}")
+          storage = AzureBlobStorage()
+          filename = url.split("/")[-1]
+          destination_file_path = os.path.join(os.getcwd(), filename)
+          storage.download_blob(container_name=AZURE_STORAGE_UPLOAD_CONTAINER_NAME, 
+                                blob_name=filename, 
+                                destination_file_path=destination_file_path)
+          
+          print(f"[{i}] Downloaded blob: {filename} to {destination_file_path}")
 
-              print(f"[{i}] Received message: {str(msg)}")
-              config = ProcessingPipelineConfiguration(
-                  pdf_path=destination_file_path
-              )
-              config.multimodal_model = MulitmodalProcessingModelInfo(           
-                  model_name="gpt-4o",
-              )
+          print(f"[{i}] Received message: {str(msg)}")
+          config = ProcessingPipelineConfiguration(
+              pdf_path=destination_file_path
+          )
+          config.multimodal_model = MulitmodalProcessingModelInfo(           
+              model_name="gpt-4o",
+          )
 
-              config.text_model = TextProcessingModelnfo(
-                  model_name="gpt-4o",           
-              )
-              search_config = AISearchConfig(index_name = AZURE_AI_SEARCH_INDEX_NAME)
-              
-              job = DocumentIngestionJob(config=config, search_config=search_config)
-              document = job.execute_job(container_name=AZURE_STORAGE_OUTPUT_CONTAINER_NAME)
-              print(f"[{i}] Document processing job executed successfully.")
-              break
-            except Exception as e:
-              print(f"[{i}] Received message {str(msg)}: {e}")
-              continue
-            finally:
-              # Complete the message so that the message is removed from the queue
-              await receiver.complete_message(msg)
-              received_msgs.remove(msg)
-              print(f"[{i}] Completed message: {str(msg)}")
-        except Exception as e:
-          print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
-        finally:  
-          await receiver.close()
-          print(f"Receiver closed for queue: {queue_name}")
-          await servicebus_client.close()
+          config.text_model = TextProcessingModelnfo(
+              model_name="gpt-4o",           
+          )
+          search_config = AISearchConfig(index_name = AZURE_AI_SEARCH_INDEX_NAME)
+          
+          job = DocumentIngestionJob(config=config, search_config=search_config)
+          document = job.execute_job(container_name=AZURE_STORAGE_OUTPUT_CONTAINER_NAME)
+          print(f"[{i}] Document processing job executed successfully.")
+          break
+            # except Exception as e:
+            #   print(f"[{i}] Received message {str(msg)}: {e}")
+            #   continue
+            # finally:
+            #   # Complete the message so that the message is removed from the queue
+            #   await receiver.complete_message(msg)
+            #   received_msgs.remove(msg)
+            #   print(f"[{i}] Completed message: {str(msg)}")
+        # except Exception as e:
+        #   print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
+        # finally:  
+        #   await receiver.close()
+        #   print(f"Receiver closed for queue: {queue_name}")
+        #   await servicebus_client.close()
 
 
 # Receive messages from the input queue
