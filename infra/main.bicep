@@ -472,6 +472,10 @@ module containerApps 'modules/container-apps.bicep' = {
     ]
     environmentVariables: [
       {
+        name: 'AZURE_CLIENT_ID'
+        value: uami.outputs.clientId
+      }
+      {
         name: 'AZURE_OPENAI_RESOURCE_4O'
         value: openai.outputs.openAiName
       }
@@ -585,7 +589,7 @@ module containerApps 'modules/container-apps.bicep' = {
       }
       {
         name: 'SERVICE_BUS_QUEUE_NAME'
-        value: namespace.outputs.queues[0].name
+        value: serviceBusQueueNames[0]
       }
       {
         name: 'SERVICE_BUS_CONNECTION_STRING'

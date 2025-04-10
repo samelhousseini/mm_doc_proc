@@ -52,8 +52,8 @@ sys.path.append("../")
 from utils.openai_utils import *
 from multimodal_processing_pipeline.data_models import *
 from multimodal_processing_pipeline.pdf_ingestion_pipeline import *
-from search_data_models import *
-from search_helpers import *
+from search.search_data_models import *
+from search.search_helpers import *
 
 from multiprocessing.dummy import Pool as ThreadPool
 pool = ThreadPool(25)

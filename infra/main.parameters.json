@@ -60,7 +60,7 @@
       "value": true
     },
     "storageAccountName": {
-      "value": "mmstpd"
+      "value": ""
     },
     "uploadsContainerName": {
       "value": "data"

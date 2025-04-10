@@ -15,7 +15,7 @@ from utils.openai_data_models import (
     TextProcessingModelnfo,
 )
 
-from data_models import (
+from multimodal_processing_pipeline.data_models import (
     EmbeddedImages,
     EmbeddedTables,
     EmbeddedImage,
@@ -30,9 +30,9 @@ from data_models import (
     DocumentContent,
     PipelineState
 )
-from configuration_models import *
+from multimodal_processing_pipeline.configuration_models import *
 from utils.file_utils import *
-from pipeline_utils import (
+from multimodal_processing_pipeline.pipeline_utils import (
     analyze_images,
     analyze_tables,
     process_text,
@@ -47,7 +47,7 @@ from utils.file_utils import *
 from rich.console import Console
 console = Console()
 
-from configuration_models import ProcessingPipelineConfiguration
+from multimodal_processing_pipeline.configuration_models import ProcessingPipelineConfiguration
 
 
 class PDFIngestionPipeline:

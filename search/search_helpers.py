@@ -10,7 +10,7 @@ from utils.openai_utils import *
 from multimodal_processing_pipeline.data_models import *
 from utils.file_utils import *
 from utils.text_utils import *
-from search_data_models import *
+from search.search_data_models import *
 
 
 module_directory = os.path.dirname(os.path.abspath(__file__))

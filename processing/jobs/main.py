@@ -37,11 +37,14 @@ sys.path.append(".")
 
 from utils.openai_utils import *
 from utils.openai_data_models import *
-
+from storage.azure_blob_storage import AzureBlobStorage
+from multimodal_processing_pipeline.configuration_models import ProcessingPipelineConfiguration, CustomProcessingStep
+from orchestration.document_ingestion_job import DocumentIngestionJob
+from search.search_data_models import AISearchConfig, SearchUnit
 
 # Set up logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler()
@@ -97,7 +100,7 @@ MESSAGE_COUNT=100
 
 # Print environment variables
 print(f"FULLY_QUALIFIED_NAMESPACE: {fully_qualified_namespace}")
-print(f"OUTPUT_QUEUE_NAME: {queue_name}")
+print(f"QUEUE_NAME: {queue_name}")
 print(f"MAX_MESSAGE_COUNT: {max_message_count}")
 print(f"MAX_WAIT_TIME: {max_wait_time}")
 print(f"MIN_NUMBER: {MIN_NUMBER}")
@@ -133,11 +136,11 @@ class DocumentProcessor:
             logger.info("LLM call successful:", response)
 
         except Exception:
-            logger.info
+            logger.info("Error initializing DefaultAzureCredential")
 
 
 # Get credential object
-credential = DefaultAzureCredential(logging_enable=True)
+credential = DefaultAzureCredential(logging_enable=False)
 
 async def receive_messages():
   # create a Service Bus client using the connection string
@@ -150,36 +153,79 @@ async def receive_messages():
       # Get the Queue Receiver object for the input queue
       receiver = servicebus_client.get_queue_receiver(queue_name = queue_name)
       async with receiver:
-        i = 0
-        # Receive a batch of messages until the queue is empty
-        while True:
-          try:
-            received_msgs = await receiver.receive_messages(max_wait_time = max_wait_time, max_message_count = max_message_count)
-            if len(received_msgs) == 0:
+        try:
+          received_msgs = await receiver.receive_messages(max_wait_time = max_wait_time, max_message_count = max_message_count)
+
+          if len(received_msgs) == 0:
+            return
+          for i, msg in enumerate(received_msgs):
+            # Check if message contains an integer value
+            try:
+              # For the main dictionary
+              topic = msg.get("topic")
+              subject = msg.get("subject")
+              eventType = msg.get("eventType")
+              id = msg.get("id")
+              data = msg.get("data")
+              dataVersion = msg.get("dataVersion")
+              metadataVersion = msg.get("metadataVersion")
+              eventTime = msg.get("eventTime")
+
+              # For the nested data dictionary
+              api = data.get("api")
+              clientRequestId = data.get("clientRequestId")
+              requestId = data.get("requestId")
+              eTag = data.get("eTag")
+              contentType = data.get("contentType")
+              contentLength = data.get("contentLength")
+              blobType = data.get("blobType")
+              accessTier = data.get("accessTier")
+              url = data.get("url")
+              sequencer = data.get("sequencer")
+              storageDiagnostics = data.get("storageDiagnostics")
+              batchId = storageDiagnostics["batchId"]
+
+              storage = AzureBlobStorage()
+              filename = url.split("/")[-1]
+              destination_file_path = os.path.join(os.getcwd(), filename)
+              storage.download_blob(container_name=AZURE_STORAGE_UPLOAD_CONTAINER_NAME, 
+                                    blob_name=filename, 
+                                    destination_file_path=destination_file_path)
+              
+              print(f"[{i}] Downloaded blob: {filename} to {destination_file_path}")
+
+              print(f"[{i}] Received message: {str(msg)}")
+              config = ProcessingPipelineConfiguration(
+                  pdf_path=destination_file_path
+              )
+              config.multimodal_model = MulitmodalProcessingModelInfo(           
+                  model_name="gpt-4o",
+              )
+
+              config.text_model = TextProcessingModelnfo(
+                  model_name="gpt-4o",           
+              )
+              search_config = AISearchConfig(index_name = AZURE_AI_SEARCH_INDEX_NAME)
+              
+              job = DocumentIngestionJob(config=config, search_config=search_config)
+              document = job.execute_job(container_name=AZURE_STORAGE_OUTPUT_CONTAINER_NAME)
+              print(f"[{i}] Document processing job executed successfully.")
               break
-            for msg in received_msgs:
-              # Check if message contains an integer value
-              try:
-                n = int(str(msg))
-                i += 1
-                print(f"[{i}] Received Message: {n}")
-              except ValueError:
-                print(f"[{i}] Received message {str(msg)} is not an integer number")
-                continue
-              finally:
-                # Complete the message so that the message is removed from the queue
-                await receiver.complete_message(msg)
-                print(f"[{i}] Completed message: {str(msg)}")
-          except Exception as e:
-            print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
-            break
-          
-    try:
-       doc = DocumentProcessor()
-    except:
-        logger.error("Error initializing DocumentProcessor")
-        print("Error initializing DocumentProcessor")
-        raise
+            except Exception as e:
+              print(f"[{i}] Received message {str(msg)}: {e}")
+              continue
+            finally:
+              # Complete the message so that the message is removed from the queue
+              await receiver.complete_message(msg)
+              received_msgs.remove(msg)
+              print(f"[{i}] Completed message: {str(msg)}")
+        except Exception as e:
+          print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
+        finally:  
+          await receiver.close()
+          print(f"Receiver closed for queue: {queue_name}")
+          await servicebus_client.close()
+
 
 # Receive messages from the input queue
 asyncio.run(receive_messages())

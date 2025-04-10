@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Literal, Type, Union, Any
 
 
-from data_models import *
+from multimodal_processing_pipeline.data_models import *
 
 
 

@@ -19,7 +19,7 @@ from azure.storage.blob import (
 from pydantic import BaseModel
 
 # Import your existing data models
-from data_models import (
+from multimodal_processing_pipeline.data_models import (
     DocumentContent,
     PageContent,
     PDFMetadata,
@@ -416,10 +416,16 @@ class AzureBlobStorage:
           - Each PageContent (images, text, tables) in subfolders.
         Updates the relevant fields in DocumentContent with Azure blob URIs.
         """
+
+        if document_content.metadata and document_content.metadata.document_id:
+            blob_prefix = document_content.metadata.document_id 
+        else:
+            blob_prefix = None
+
         if not container_name:
             # If there's a known output directory, use it to name the container
             if document_content.metadata and document_content.metadata.document_id:
-                container_name = document_content.metadata.document_id # Path(document_content.metadata.output_directory).stem
+                container_name = document_content.metadata.document_id 
             else:
                 container_name = "default-container"
 
@@ -430,21 +436,22 @@ class AzureBlobStorage:
         # 1) Upload the original PDF file to the root of the container
         pdf_path = Path(document_content.metadata.document_path)
         if pdf_path.is_file():
-            blob_name = pdf_path.name  # store in root
+            blob_name = os.path.join(document_content.metadata.document_id, pdf_path.name)  # store in root
             cloud_uri = self.upload_blob(safe_container, blob_name, str(pdf_path))
             document_content.metadata.cloud_storage_path = cloud_uri
 
         # 2) If post_processing_content is present, upload each DataUnit in the root
         if document_content.post_processing_content:
-            self._upload_post_processing_content(document_content.post_processing_content, safe_container)
+            self._upload_post_processing_content(document_content.post_processing_content, safe_container, blob_prefix=blob_prefix)
 
         # 3) Upload each page
         for page in document_content.pages:
-            self._upload_page_content_impl(page, safe_container)
+            self._upload_page_content_impl(page, safe_container, blob_prefix=blob_prefix)
 
         self.save_and_upload_document_content_json(document_content, 
                                                    doc_json_path=document_content.post_processing_content.document_json.text_file_path,
-                                                   container_name=safe_container)
+                                                   container_name=safe_container,
+                                                   blob_prefix=blob_prefix)
 
         return document_content
 
@@ -454,7 +461,8 @@ class AzureBlobStorage:
         document_content: DocumentContent,
         doc_json_path: Optional[str] = None,
         local_folder: Optional[str] = None,
-        container_name: Optional[str] = None
+        container_name: Optional[str] = None,
+        blob_prefix: Optional[str] = None
     ) -> DocumentContent:
         """
         Saves the entire DocumentContent to a local JSON file (document_content.json),
@@ -492,7 +500,16 @@ class AzureBlobStorage:
         print(f"Saved DocumentContent to: {doc_json_path}")
 
         # Upload the file (blob will be called "document_content.json" at container root)
-        cloud_uri = self.upload_blob(container_name, "document_content.json", str(doc_json_path))
+        if blob_prefix is not None:
+            if blob_prefix.endswith("/"): blob_prefix = blob_prefix[:-1]
+            # Upload the JSON file to the root of the container
+            cloud_uri = self.upload_blob(container_name, f"{blob_prefix}/document_content.json", str(doc_json_path))
+        else:
+            # Upload the JSON file to the root of the container
+            cloud_uri = self.upload_blob(container_name, f"document_content.json", str(doc_json_path))
+
+        # Upload the JSON file to the root of the container
+        cloud_uri = self.upload_blob(container_name, f"{blob_prefix}/document_content.json", str(doc_json_path))
 
         # Ensure post_processing_content.document_json is set
         if not document_content.post_processing_content:
@@ -510,34 +527,35 @@ class AzureBlobStorage:
     def _upload_post_processing_content(
         self,
         post_proc: PostProcessingContent,
-        container_name: str
+        container_name: str,
+        blob_prefix = None
     ) -> None:
         """
         Upload each DataUnit from the PostProcessingContent **in the root** of the container.
         """
         # Each of these is an optional DataUnit. We must upload them if they exist.
         if post_proc.condensed_text:
-            self._upload_data_unit(container_name, post_proc.condensed_text, blob_prefix=None)
+            self._upload_data_unit(container_name, post_proc.condensed_text, blob_prefix=blob_prefix)
 
         if post_proc.table_of_contents:
-            self._upload_data_unit(container_name, post_proc.table_of_contents, blob_prefix=None)
+            self._upload_data_unit(container_name, post_proc.table_of_contents, blob_prefix=blob_prefix)
 
         if post_proc.full_text:
-            self._upload_data_unit(container_name, post_proc.full_text, blob_prefix=None)
+            self._upload_data_unit(container_name, post_proc.full_text, blob_prefix=blob_prefix)
 
         for step in post_proc.custom_document_processing_steps:
-            self._upload_data_unit(container_name, step, blob_prefix=None)
+            self._upload_data_unit(container_name, step, blob_prefix=blob_prefix)
 
         if post_proc.document_json:
-            self._upload_data_unit(container_name, post_proc.document_json, blob_prefix=None)
+            self._upload_data_unit(container_name, post_proc.document_json, blob_prefix=blob_prefix)
 
         if post_proc.translated_full_texts:
             for i, text in enumerate(post_proc.translated_full_texts):
-                self._upload_data_unit(container_name, text, blob_prefix=None)
+                self._upload_data_unit(container_name, text, blob_prefix=blob_prefix)
 
         if post_proc.translated_condensed_texts:
             for i, text in enumerate(post_proc.translated_condensed_texts):
-                self._upload_data_unit(container_name, text, blob_prefix=None)
+                self._upload_data_unit(container_name, text, blob_prefix=blob_prefix)
 
 
     # --------------------------------------------------------------------------
@@ -565,12 +583,15 @@ class AzureBlobStorage:
         self._upload_page_content_impl(page_content, safe_container)
         return page_content
 
-    def _upload_page_content_impl(self, page_content: PageContent, container_name: str) -> None:
+    def _upload_page_content_impl(self, page_content: PageContent, container_name: str, blob_prefix: str = None) -> None:
         """
         Internal logic to upload the main page image, the combined page_text DataUnit,
         and each ExtractedText, ExtractedImage, ExtractedTable.
         """
-        page_prefix = f"pages/page_{page_content.page_number}"
+        if blob_prefix is None:
+            page_prefix = f"pages/page_{page_content.page_number}"
+        else:
+            page_prefix = f"{blob_prefix}/pages/page_{page_content.page_number}"
 
         # 1) Upload the main page image (page_image_path)
         main_img_path = Path(page_content.page_image_path)

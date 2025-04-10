@@ -5,7 +5,7 @@ from PIL import Image
 from utils.file_utils import write_to_file, replace_extension, read_asset_file, locate_prompt
 from utils.text_utils import clean_up_text, extract_markdown, extract_code
 from utils.openai_utils import call_llm, call_llm_structured_outputs
-from data_models import EmbeddedText, EmbeddedImages, EmbeddedTables
+from multimodal_processing_pipeline.data_models import EmbeddedText, EmbeddedImages, EmbeddedTables
 
 
 module_directory = os.path.dirname(os.path.abspath(__file__))
