@@ -162,6 +162,10 @@ async def receive_messages():
           # Check if message contains an integer value
           # try:
           # For the main dictionary
+          print(f"[{i}] Received message: {str(msg)}")
+          msg = json.loads(str(msg))
+          print(f"[{i}] Received message: {str(msg)}")
+
           topic = msg.get("topic")
           subject = msg.get("subject")
           eventType = msg.get("eventType")
