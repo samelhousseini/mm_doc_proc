@@ -30,7 +30,7 @@ class CosmosDBHelper:
             self.database = self.client.create_database_if_not_exists(id=COSMOS_DB_NAME)
             self.container = self.database.create_container_if_not_exists(
                 id=container_name,
-                partition_key=PartitionKey(path="/categoryId"),
+                partition_key=PartitionKey(path=f"/{COSMOS_CATEGORYID}"),
                 indexing_policy={
                     "includedPaths": [{"path": "/*"}],
                     "excludedPaths": [{"path": "/_etag/?"}]

@@ -65,7 +65,7 @@ class DocumentIngestionJob():
             json_doc['id'] = self.document.metadata.document_id
         else:
             json_doc['id'] = str(uuid.uuid4())
-        self.cosmos.upsert_document(document=json_doc)
+        self.cosmos.create_document(document=json_doc)
         return json_doc
     
 
