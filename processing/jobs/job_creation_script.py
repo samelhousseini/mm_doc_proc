@@ -103,7 +103,8 @@ def create_config_from_document(
         config_name += '.json'
     
     # Convert config to JSON
-    config_json = config.to_json()
+    config_json = {}
+    config_json['configuration'] = config.to_json()
     
     # Save JSON locally first
     local_json_path = os.path.join(os.getcwd(), config_name)
