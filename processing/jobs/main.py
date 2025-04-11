@@ -98,11 +98,9 @@ APP_INSIGHTS_CONN_STRING = os.getenv("APP_INSIGHTS_CONN_STRING")
 
 fully_qualified_namespace=f"{SERVICE_BUS_NAME}.servicebus.windows.net"
 queue_name=SERVICE_BUS_QUEUE_NAME
-max_wait_time=5
-max_message_count=20
-MIN_NUMBER=1
-MAX_NUMBER=20
-MESSAGE_COUNT=100
+max_wait_time=240 # seconds
+max_message_count=1
+
 
 debug_prints = True
 
@@ -113,8 +111,6 @@ if debug_prints:
   print(f"QUEUE_NAME: {queue_name}")
   print(f"MAX_MESSAGE_COUNT: {max_message_count}")
   print(f"MAX_WAIT_TIME: {max_wait_time}")
-  print(f"MIN_NUMBER: {MIN_NUMBER}")
-  print(f"MAX_NUMBER: {MAX_NUMBER}")
   print(f"AZURE_STORAGE_ACCOUNT_NAME: {AZURE_STORAGE_ACCOUNT_NAME}")
   print(f"AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME: {AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME}")
   print(f"AZURE_STORAGE_OUTPUT_CONTAINER_NAME: {AZURE_STORAGE_OUTPUT_CONTAINER_NAME}")
