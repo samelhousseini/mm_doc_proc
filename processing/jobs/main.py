@@ -57,8 +57,8 @@ load_dotenv()
 
 # Configuration from environment variables
 AZURE_STORAGE_ACCOUNT_NAME = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
-AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME = os.getenv("AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME", "data")
-AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME = os.getenv("AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME", "documents")
+AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME = os.getenv("AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME", "json-data")
+AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME = os.getenv("AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME", "document-data")
 AZURE_STORAGE_ACCOUNT_ID = os.getenv("AZURE_STORAGE_ACCOUNT_ID")
 AZURE_STORAGE_QUEUE_NAME = os.getenv("AZURE_STORAGE_QUEUE_NAME", "document-processing-queue")
 
@@ -186,15 +186,15 @@ async def receive_messages():
             logger.info("No messages received, returning")
             print("No messages received, returning")
             return
-          for i, msg in enumerate(received_msgs):
+          for i, raw_msg in enumerate(received_msgs):
             # Check if message contains an integer value
             try:
               # For the main dictionary
-              logger.info(f"[{i}] Received message (raw): {str(msg)}")
-              print(f"[{i}] Received message (raw): {str(msg)}")
+              logger.info(f"[{i}] Received message (raw): {str(raw_msg)}")
+              print(f"[{i}] Received message (raw): {str(raw_msg)}")
               
               # Try to parse the message
-              msg_content = str(msg)
+              msg_content = str(raw_msg)
               logger.info(f"[{i}] Message content type: {type(msg_content)}")
               print(f"[{i}] Message content type: {type(msg_content)}")
               
@@ -282,12 +282,12 @@ async def receive_messages():
               print(f"[{i}] Document processing job executed successfully.")
               break
             except Exception as e:
-              print(f"[{i}] Received message {str(msg)}: {e}")
+              print(f"[{i}] Exception processing message {str(msg)}: {e}")
               continue
             finally:
               # Complete the message so that the message is removed from the queue
-              await receiver.complete_message(msg)
-              received_msgs.remove(msg)
+              await receiver.complete_message(raw_msg)
+              received_msgs.remove(raw_msg)
               print(f"[{i}] Completed message: {str(msg)}")
         except Exception as e:
           print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
