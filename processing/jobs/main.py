@@ -174,20 +174,48 @@ async def receive_messages():
     async with servicebus_client:
       # Get the Queue Receiver object for the input queue
       receiver = servicebus_client.get_queue_receiver(queue_name = queue_name)
+      logger.info(f"Created receiver for queue: {queue_name}")
+      print(f"Created receiver for queue: {queue_name}")
+      
       async with receiver:
         try:
+          logger.info(f"Waiting for messages (max_wait_time={max_wait_time}s, max_message_count={max_message_count})...")
+          print(f"Waiting for messages (max_wait_time={max_wait_time}s, max_message_count={max_message_count})...")
           received_msgs = await receiver.receive_messages(max_wait_time = max_wait_time, max_message_count = max_message_count)
+          
+          logger.info(f"Received {len(received_msgs)} messages")
+          print(f"Received {len(received_msgs)} messages")
 
           if len(received_msgs) == 0:
+            logger.info("No messages received, returning")
+            print("No messages received, returning")
             return
           for i, msg in enumerate(received_msgs):
             # Check if message contains an integer value
             try:
               # For the main dictionary
-              logger.info(f"[{i}] Received message: {str(msg)}")
-              msg = json.loads(str(msg))
-              logger.info(f"[{i}] Received message: {str(msg)}")
-
+              logger.info(f"[{i}] Received message (raw): {str(msg)}")
+              print(f"[{i}] Received message (raw): {str(msg)}")
+              
+              # Try to parse the message
+              msg_content = str(msg)
+              logger.info(f"[{i}] Message content type: {type(msg_content)}")
+              print(f"[{i}] Message content type: {type(msg_content)}")
+              
+              try:
+                msg = json.loads(msg_content)
+                logger.info(f"[{i}] Successfully parsed message as JSON")
+                print(f"[{i}] Successfully parsed message as JSON")
+              except json.JSONDecodeError as json_err:
+                logger.error(f"[{i}] Failed to parse message as JSON: {json_err}")
+                print(f"[{i}] Failed to parse message as JSON: {json_err}")
+                logger.info(f"[{i}] First 100 chars of message: {msg_content[:100]}")
+                print(f"[{i}] First 100 chars of message: {msg_content[:100]}")
+                raise
+              
+              logger.info(f"[{i}] Parsed message structure: {json.dumps(msg, indent=2)}")
+              print(f"[{i}] Parsed message keys: {list(msg.keys())}")
+              
               topic = msg.get("topic")
               subject = msg.get("subject")
               eventType = msg.get("eventType")
@@ -196,8 +224,28 @@ async def receive_messages():
               dataVersion = msg.get("dataVersion")
               metadataVersion = msg.get("metadataVersion")
               eventTime = msg.get("eventTime")
-
-              # For the nested data dictionary
+              
+              logger.info(f"[{i}] Extracted fields:")
+              logger.info(f"  - topic: {topic}")
+              logger.info(f"  - subject: {subject}")
+              logger.info(f"  - eventType: {eventType}")
+              logger.info(f"  - id: {id}")
+              logger.info(f"  - eventTime: {eventTime}")
+              logger.info(f"  - data type: {type(data)}")
+              
+              print(f"[{i}] Extracted fields:")
+              print(f"  - topic: {topic}")
+              print(f"  - subject: {subject}")
+              print(f"  - eventType: {eventType}")
+              print(f"  - id: {id}")
+              print(f"  - eventTime: {eventTime}")
+              print(f"  - data type: {type(data)}")
+              
+              if data is None:
+                logger.error(f"[{i}] Data field is None - message format may be incorrect")
+                print(f"[{i}] Data field is None - message format may be incorrect")
+                continue
+              
               api = data.get("api")
               clientRequestId = data.get("clientRequestId")
               requestId = data.get("requestId")
@@ -257,4 +305,4 @@ async def receive_messages():
 asyncio.run(receive_messages())
 
 # Close credential object when it's no longer needed
-asyncio.run(credential.close())            
+asyncio.run(credential.close())
