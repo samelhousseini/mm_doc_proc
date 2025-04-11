@@ -153,4 +153,9 @@ else
 fi
 
 
-
+echo "Resetting public network access to ENABLED..."
+az cosmosdb update \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$ACCOUNT_NAME" \
+    --public-network-access ENABLED \
+    --verbose 
