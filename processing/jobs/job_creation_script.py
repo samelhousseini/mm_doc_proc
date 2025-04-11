@@ -15,6 +15,13 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+import sys
+sys.path.append("./")
+sys.path.append("../")
+sys.path.append("../../")
+
+from utils.file_utils import *
+
 # Add project root to path so we can import our modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -96,15 +103,19 @@ def create_config_from_document(
         custom_document_processing_steps=[]
     )
     
+    # Generate a unique document ID
+    document_id = local_path.stem.replace(" ", "_") + "_" + generate_uuid_from_string(str(local_path))
+
     # Generate config name if not provided
     if not config_name:
-        config_name = f"{local_path.stem}_config.json"
+        config_name = f"{document_id}_config.json"
     elif not config_name.endswith('.json'):
         config_name += '.json'
     
     # Convert config to JSON
     config_json = {}
-    config_json['configuration'] = config.to_json()
+    config_json['document_id'] = document_id
+    config_json['configuration'] = config.to_json()    
     
     # Save JSON locally first
     local_json_path = os.path.join(os.getcwd(), config_name)
