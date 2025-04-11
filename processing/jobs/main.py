@@ -182,9 +182,9 @@ async def receive_messages():
           # Check if message contains an integer value
           # try:
           # For the main dictionary
-          print(f"[{i}] Received message: {str(msg)}")
+          logger.info(f"[{i}] Received message: {str(msg)}")
           msg = json.loads(str(msg))
-          print(f"[{i}] Received message: {str(msg)}")
+          logger.info(f"[{i}] Received message: {str(msg)}")
 
           topic = msg.get("topic")
           subject = msg.get("subject")
@@ -212,6 +212,9 @@ async def receive_messages():
           storage = AzureBlobStorage()
           filename = url.split("/")[-1]
           destination_file_path = os.path.join(os.getcwd(), filename)
+          logger.info(f"AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME {AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME}")
+          logger.info(f"filename {filename}")
+          logger.info(f"destination_file_path {destination_file_path}")
           storage.download_blob(container_name=AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME, 
                                 blob_name=filename, 
                                 destination_file_path=destination_file_path)
@@ -224,8 +227,7 @@ async def receive_messages():
           config = ProcessingPipelineConfiguration.from_json_dict(json_file['configuration'])
           config.pdf_path = storage.download_blob_url(config.pdf_path)
           
-          print(f"[{i}] Received message: {str(msg)}")
-          print(f"[{i}] Loaded Config: {str(config)}")
+          logger.info(f"[{i}] Loaded Config: {str(config)}")
 
           search_config = AISearchConfig(index_name = AZURE_AI_SEARCH_INDEX_NAME)
           
