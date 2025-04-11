@@ -62,8 +62,11 @@
     "storageAccountName": {
       "value": ""
     },
-    "uploadsContainerName": {
-      "value": "data"
+    "uploadsJsonContainerName": {
+      "value": "json_data"
+    },
+    "uploadsDocumentContainerName": {
+      "value": "document_data"
     },
     "processedContainerName": {
       "value": "processed"

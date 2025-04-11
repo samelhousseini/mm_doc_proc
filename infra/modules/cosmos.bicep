@@ -4,6 +4,8 @@ param userAssignedIdentityPrincipalId string
 param cosmosDbAccountName string = '${prefix}cosmos${uniqueId}'
 param databaseName string = 'proc-docs'
 param containerName string = 'documents'
+param partitionKeyName string = 'categoryId'
+param partitionKeyValue string = 'documents'
 param location string = resourceGroup().location
 
 
@@ -61,7 +63,7 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
       partitionKey: {
         kind: 'Hash'
         paths: [
-          '/partitionKey'
+          '/${partitionKeyName}'
         ]
       }
     }
@@ -89,3 +91,5 @@ resource sqlRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignm
 output cosmosDbDatabase string = cosmosDbDatabase.name
 output cosmosDbContainer string = container.name
 output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint
+output partitionKeyName string = partitionKeyName
+output partitionKeyValue string = partitionKeyValue

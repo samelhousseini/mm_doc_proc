@@ -85,8 +85,11 @@ param storageAccountName string
 param createStorage bool = true
 
 
-@description('Blob container name for uploads.')
-param uploadsContainerName string = 'data'
+@description('Blob container name for JSON uploads.')
+param uploadsJsonContainerName string = 'json_data'
+
+@description('Blob container name for JSON uploads.')
+param uploadsDocumentContainerName string = 'document_data'
 
 @description('Blob container name for processed documents.')
 param processedContainerName string = 'processed'
@@ -202,6 +205,18 @@ param queueDeadLetteringOnExpiration bool = true
 param queueDuplicateDetectionWindow string = 'PT10M'
 
 
+// ------------------ Cosmos DB Parameters ------------------ //
+@description('Name for the CosmosDB database')
+param cosmosDbDatabaseName string = 'proc-docs'
+
+@description('Name for the CosmosDB container')
+param cosmosDbContainerName string = 'documents'
+
+@description('Name for the partition key field in CosmosDB')
+param cosmosDbPartitionKeyName string = 'categoryId'
+
+@description('Value of the partition key used for categorization in CosmosDB')
+param cosmosDbPartitionKeyValue string = 'documents'
 
 
 
@@ -287,7 +302,8 @@ module storage 'modules/storage.bicep' = {
     location: location
     createStorage: createStorage
     storageAccountName: storageNameGenerated
-    uploadsContainerName: uploadsContainerName
+    uploadsJsonContainerName: uploadsJsonContainerName
+    uploadsDocumentContainerName: uploadsDocumentContainerName
     processedContainerName: processedContainerName
     storageQueueName: storageQueueName
     tags: tags
@@ -334,7 +350,7 @@ module eventGridServiceBusIntegration 'modules/eventgrid-servicebus.bicep' = {
       'Microsoft.Storage.BlobCreated'
     ]
     subjectFilters: {
-      subjectBeginsWith: '/blobServices/default/containers/${storage.outputs.uploadsContainerName}'
+      subjectBeginsWith: '/blobServices/default/containers/${storage.outputs.uploadsJsonContainerName}'
       subjectEndsWith: ''
     }
   }
@@ -351,6 +367,11 @@ module cosmos 'modules/cosmos.bicep' = {
     uniqueId: uniqueId
     prefix: baseName
     userAssignedIdentityPrincipalId: uami.outputs.principalId
+    databaseName: cosmosDbDatabaseName
+    containerName: cosmosDbContainerName
+    partitionKeyName: cosmosDbPartitionKeyName
+    partitionKeyValue: cosmosDbPartitionKeyValue
+    location: location
   }
 }
 
@@ -548,8 +569,28 @@ module containerApps 'modules/container-apps.bicep' = {
         value: storage.outputs.storageAccountName
       }
       {
-        name: 'AZURE_STORAGE_UPLOAD_CONTAINER_NAME'
-        value: uploadsContainerName
+        name: 'AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME'
+        value: uploadsJsonContainerName
+      }
+      {
+        name: 'AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME'
+        value: uploadsDocumentContainerName
+      }
+      {
+        name: 'AZURE_STORAGE_ACCOUNT_ID'
+        value: storage.outputs.storageAccountId
+      }
+      {
+        name: 'AZURE_STORAGE_QUEUE_NAME'
+        value: storage.outputs.queueName
+      }
+      {
+        name: 'AZURE_STORAGE_BLOB_ENDPOINT'
+        value: storage.outputs.storageBlobEndpoint
+      }
+      {
+        name: 'AZURE_STORAGE_QUEUE_ENDPOINT'
+        value: storage.outputs.storageQueueEndpoint
       }
       {
         name: 'AZURE_STORAGE_OUTPUT_CONTAINER_NAME'
@@ -573,11 +614,11 @@ module containerApps 'modules/container-apps.bicep' = {
       }
       {
         name: 'COSMOS_CATEGORYID'
-        value: 'categoryId'
+        value: cosmos.outputs.partitionKeyName
       }
       {
         name: 'COSMOS_CATEGORYID_VALUE'
-        value: 'documents'
+        value: cosmos.outputs.partitionKeyValue
       }
       {
         name: 'COSMOS_LOG_CONTAINER'
@@ -659,7 +700,7 @@ output storageAccountName string = storage.outputs.storageAccountName
 output storageAccountId string = storage.outputs.storageAccountId
 output storageBlobEndpoint string = storage.outputs.storageBlobEndpoint
 output storageQueueEndpoint string = storage.outputs.storageQueueEndpoint
-output uploadsContainerName string = storage.outputs.uploadsContainerName
+output uploadsJsonContainerName string = storage.outputs.uploadsJsonContainerName
 output processedContainerName string = storage.outputs.processedContainerName
 output storageQueueName string = storage.outputs.queueName
 output blobEventGridSystemTopicName string = storage.outputs.blobEventGridSystemTopicName

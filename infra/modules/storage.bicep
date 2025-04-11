@@ -7,8 +7,11 @@ param createStorage bool = true
 @description('Name of the storage account')
 param storageAccountName string
 
-@description('Blob container name for uploads.')
-param uploadsContainerName string
+@description('Blob container name for JSON uploads.')
+param uploadsJsonContainerName string
+
+@description('Blob container name for document uploads.')
+param uploadsDocumentContainerName string
 
 @description('Blob container name for processed documents.')
 param processedContainerName string
@@ -28,7 +31,8 @@ param userAssignedIdentityPrincipalId string
 
 var debugInfo = {
   name: storageAccountName
-  uploadContainer: uploadsContainerName
+  uploadContainer: uploadsJsonContainerName
+  uploadsDocumentContainerName: uploadsDocumentContainerName
   processedContainer: processedContainerName
   queue: storageQueueName
   diagnosticsEnabled: !empty(logAnalyticsWorkspaceId)
@@ -65,8 +69,16 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01'
   }
 }
 
-resource uploadsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-09-01' = {
-  name: uploadsContainerName
+resource uploadsJsonContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-09-01' = {
+  name: uploadsJsonContainerName
+  parent: blobService
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource uploadsDocumentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-09-01' = {
+  name: uploadsDocumentContainerName
   parent: blobService
   properties: {
     publicAccess: 'None'
@@ -147,7 +159,8 @@ var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${stor
 output storageAccountName string = storageAccount.name
 output storageAccountKey string = storageAccount.listKeys().keys[0].value
 output storageConnectionString string = storageConnectionString
-output uploadsContainerName string = uploadsContainerName
+output uploadsJsonContainerName string = uploadsJsonContainerName
+output uploadsDocumentContainerName string = uploadsDocumentContainerName
 output processedContainerName string = processedContainerName
 output queueName string = storageQueueName
 output blobEventGridSystemTopicName string = blobEventGridSystemTopic.name

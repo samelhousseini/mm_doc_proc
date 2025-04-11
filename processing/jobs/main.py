@@ -13,7 +13,7 @@ import time
 import sys
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-
+import json
 import azure.storage.blob as blob_storage
 from azure.storage.queue import QueueClient
 from azure.identity import DefaultAzureCredential, ClientSecretCredential
@@ -57,7 +57,12 @@ load_dotenv()
 
 # Configuration from environment variables
 AZURE_STORAGE_ACCOUNT_NAME = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
-AZURE_STORAGE_UPLOAD_CONTAINER_NAME = os.getenv("AZURE_STORAGE_UPLOAD_CONTAINER_NAME", "data")
+AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME = os.getenv("AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME", "data")
+AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME = os.getenv("AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME", "documents")
+AZURE_STORAGE_ACCOUNT_ID = os.getenv("AZURE_STORAGE_ACCOUNT_ID")
+AZURE_STORAGE_QUEUE_NAME = os.getenv("AZURE_STORAGE_QUEUE_NAME", "document-processing-queue")
+
+
 AZURE_STORAGE_OUTPUT_CONTAINER_NAME = os.getenv("AZURE_STORAGE_OUTPUT_CONTAINER_NAME", "processed")
 STORAGE_QUEUE_NAME = os.getenv("STORAGE_QUEUE_NAME", "doc-process-queue")
 
@@ -79,7 +84,7 @@ AZURE_AI_SEARCH_INDEX_NAME = "document-index"
 
 # Cosmos DB Configuration
 COSMOS_URI = os.getenv("COSMOS_URI")
-COSMOS_KEY = os.getenv("COSMOS_KEY")
+
 COSMOS_DB_NAME = os.getenv("COSMOS_DB_NAME", "KYC")
 COSMOS_CONTAINER_NAME = os.getenv("COSMOS_CONTAINER_NAME", "Customers")
 COSMOS_LOG_CONTAINER = os.getenv("COSMOS_LOG_CONTAINER", "logs")
@@ -105,7 +110,7 @@ print(f"MAX_WAIT_TIME: {max_wait_time}")
 print(f"MIN_NUMBER: {MIN_NUMBER}")
 print(f"MAX_NUMBER: {MAX_NUMBER}")
 print(f"AZURE_STORAGE_ACCOUNT_NAME: {AZURE_STORAGE_ACCOUNT_NAME}")
-print(f"AZURE_STORAGE_UPLOAD_CONTAINER_NAME: {AZURE_STORAGE_UPLOAD_CONTAINER_NAME}")
+print(f"AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME: {AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME}")
 print(f"AZURE_STORAGE_OUTPUT_CONTAINER_NAME: {AZURE_STORAGE_OUTPUT_CONTAINER_NAME}")
 print(f"STORAGE_QUEUE_NAME: {STORAGE_QUEUE_NAME}")
 print(f"AZURE_OPENAI_RESOURCE_EMBEDDING_LARGE: {AZURE_OPENAI_RESOURCE_EMBEDDING_LARGE}")
@@ -135,29 +140,23 @@ print(f"AZURE_OPENAI_RESOURCE_O1_MINI: {os.getenv('AZURE_OPENAI_RESOURCE_O1_MINI
 print(f"AZURE_OPENAI_MODEL_O1_MINI: {os.getenv('AZURE_OPENAI_MODEL_O1_MINI')}")
 print(f"AZURE_OPENAI_API_VERSION_O1_MINI: {os.getenv('AZURE_OPENAI_API_VERSION_O1_MINI')}")
 
-print("version 1.0.1")
+print(f"AZURE_STORAGE_ACCOUNT_NAME: {AZURE_STORAGE_ACCOUNT_NAME}")
+print(f"AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME: {AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME}")
+print(f"AZURE_STORAGE_OUTPUT_CONTAINER_NAME: {AZURE_STORAGE_OUTPUT_CONTAINER_NAME}")
+print(f"STORAGE_QUEUE_NAME: {STORAGE_QUEUE_NAME}")
+print(f"AZURE_STORAGE_ACCOUNT_ID: {os.getenv('AZURE_STORAGE_ACCOUNT_ID')}")
+print(f"AZURE_STORAGE_QUEUE_NAME: {os.getenv('AZURE_STORAGE_QUEUE_NAME')}")
+print(f"AZURE_STORAGE_BLOB_ENDPOINT: {os.getenv('AZURE_STORAGE_BLOB_ENDPOINT')}")
+print(f"AZURE_STORAGE_QUEUE_ENDPOINT: {os.getenv('AZURE_STORAGE_QUEUE_ENDPOINT')}")
+print(f"AZURE_STORAGE_OUTPUT_CONTAINER_NAME: {AZURE_STORAGE_OUTPUT_CONTAINER_NAME}")
+print(f"AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME: {os.getenv('AZURE_STORAGE_UPLOAD_DOCUMENT_CONTAINER_NAME')}")
+print(f"AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME: {AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME}")
+
+print("version 1.0.2")
 
 # App Insights for monitoring
 APP_INSIGHTS_CONN_STRING = os.getenv("APP_INSIGHTS_CONN_STRING")
 
-class DocumentProcessor:
-    """Document processor handles document extraction, analysis, and storage"""
-    
-    def __init__(self):
-        """Initialize the document processor with all necessary clients"""
-        # Azure credentials
-        try:
-            self.credential = DefaultAzureCredential()
-            logger.info("Using DefaultAzureCredential")
-
-            query = "Hello, how are you?"
-            model_info = MulitmodalProcessingModelInfo('gpt-4o')
-            response = call_llm(query, model_info=model_info)
-            print(response)
-            logger.info("LLM call successful:", response)
-
-        except Exception:
-            logger.info("Error initializing DefaultAzureCredential")
 
 
 # Get credential object
@@ -213,23 +212,21 @@ async def receive_messages():
           storage = AzureBlobStorage()
           filename = url.split("/")[-1]
           destination_file_path = os.path.join(os.getcwd(), filename)
-          storage.download_blob(container_name=AZURE_STORAGE_UPLOAD_CONTAINER_NAME, 
+          storage.download_blob(container_name=AZURE_STORAGE_UPLOAD_JSON_CONTAINER_NAME, 
                                 blob_name=filename, 
                                 destination_file_path=destination_file_path)
           
-          print(f"[{i}] Downloaded blob: {filename} to {destination_file_path}")
+                  
+          with open(destination_file_path, 'r') as f:
+            json_file = json.load(f)
 
+          # Load the configuration later
+          config = ProcessingPipelineConfiguration.from_json_dict(json_file['configuration'])
+          config.pdf_path = storage.download_blob_url(config.pdf_path)
+          
           print(f"[{i}] Received message: {str(msg)}")
-          config = ProcessingPipelineConfiguration(
-              pdf_path=destination_file_path
-          )
-          config.multimodal_model = MulitmodalProcessingModelInfo(           
-              model_name="gpt-4o",
-          )
+          print(f"[{i}] Loaded Config: {str(config)}")
 
-          config.text_model = TextProcessingModelnfo(
-              model_name="gpt-4o",           
-          )
           search_config = AISearchConfig(index_name = AZURE_AI_SEARCH_INDEX_NAME)
           
           job = DocumentIngestionJob(config=config, search_config=search_config)

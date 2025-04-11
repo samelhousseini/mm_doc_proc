@@ -189,3 +189,4 @@ downloaded_files/
 .vscode/
 
 bicep/
+pipeline_config.json

@@ -632,3 +632,52 @@ class AzureBlobStorage:
             if tbl.text:
                 # We only have a text DataUnit (markdown, etc.)
                 self._upload_data_unit(container_name, tbl.text, blob_prefix=f"{page_prefix}/tables")
+
+    def download_blob_url(self, blob_url: str, local_folder: Optional[str] = None) -> str:
+        """
+        Downloads a blob from a URL, generating a SAS token if needed.
+        Saves the blob to a local folder with the same basename as the blob.
+        
+        :param blob_url: The URL of the blob to download (can be with or without SAS token)
+        :param local_folder: Optional local folder path to save the file. If None, saves to current directory.
+        :return: The path to the downloaded file
+        """
+        # Parse the URL to extract container and blob name
+        try:
+            # Remove query parameters if present (like SAS token)
+            clean_url = blob_url.split('?')[0]
+            
+            # Extract account, container, and blob name from URL
+            # Format: https://{account}.blob.core.windows.net/{container}/{blob}
+            parts = clean_url.replace('https://', '').split('/')
+            
+            if len(parts) < 3:
+                raise ValueError(f"Invalid blob URL format: {blob_url}")
+                
+            account_part = parts[0].split('.')[0]
+            container_name = parts[1]
+            blob_name = '/'.join(parts[2:])  # Handle blob names with slashes
+            
+            # Verify that this is the correct storage account
+            if account_part != self.account_name:
+                print(f"Warning: URL points to a different storage account ({account_part} vs {self.account_name})")
+                
+        except Exception as e:
+            raise ValueError(f"Failed to parse blob URL: {blob_url}. Error: {str(e)}")
+        
+        # Determine local path
+        blob_basename = os.path.basename(blob_name)
+        if not local_folder:
+            local_folder = os.getcwd()
+        
+        os.makedirs(local_folder, exist_ok=True)
+        local_path = os.path.join(local_folder, blob_basename)
+        
+        # Download the blob
+        try:
+            print(f"Downloading blob '{blob_name}' from container '{container_name}' to '{local_path}'")
+            self.download_blob(container_name, blob_name, local_path)
+            return local_path
+        except Exception as e:
+            print(f"Error downloading blob: {str(e)}")
+            raise

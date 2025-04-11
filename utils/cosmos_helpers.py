@@ -15,7 +15,7 @@ from azure.identity import ManagedIdentityCredential
 
 #COSMOS DB
 COSMOS_URI = os.environ.get('COSMOS_URI', '')
-COSMOS_KEY = os.environ.get('COSMOS_KEY', '')
+# COSMOS_KEY = os.environ.get('COSMOS_KEY', '')
 COSMOS_DB_NAME = os.environ.get('COSMOS_DB_NAME', 'mmdoc')
 COSMOS_CONTAINER_NAME = os.environ.get('COSMOS_CONTAINER_NAME', 'Customers')
 COSMOS_CATEGORYID = os.environ.get('COSMOS_CATEGORYID', 'prompts')
