@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "resourceGroupName": {
-      "value": "${AZURE_RESOURCE_GROUP=mmdocproc-rg}"
+      "value": "${AZURE_RESOURCE_GROUP=mmdocproc-v2-rg}"
     },
     "location": {
       "value": "${AZURE_RG_LOCATION=swedencentral}"
@@ -18,16 +18,16 @@
       "value": false
     },
     "openAiResourceName": {
-      "value": "${AZURE_OPENAI_RESOURCE_4O=aoai-res}"
+      "value": ""
     },
     "existingOpenAiApiKey": {
-      "value": "${AZURE_OPENAI_KEY_4O}"
+      "value": "${AZURE_OPENAI_KEY_4O=<key_for_oai_res>}"
     },
     "existingOpenAiResourceGroup": {
       "value": "${AZURE_OPENAI_RESOURCE_GROUP=openai-resources}"
     },
     "existingOpenAiResource": {
-      "value": "${AZURE_OPENAI_RESOURCE_4O}"
+      "value": "${AZURE_OPENAI_RESOURCE_4O=<name_of_oai_res>}"
     },
     "existingOpenAILocation": {
       "value": "${AZURE_OPENAI_LOCATION=swedencentral}"
@@ -63,10 +63,10 @@
       "value": ""
     },
     "uploadsJsonContainerName": {
-      "value": "json_data"
+      "value": "json-data"
     },
     "uploadsDocumentContainerName": {
-      "value": "document_data"
+      "value": "document-data"
     },
     "processedContainerName": {
       "value": "processed"
@@ -78,7 +78,7 @@
       "value": true
     },
     "searchServiceName": {
-      "value": "mmdpsearch"
+      "value": ""
     },
     "existingSearchAdminKey": {
       "value": "${AZURE_AI_SEARCH_API_KEY}"

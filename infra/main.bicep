@@ -86,10 +86,10 @@ param createStorage bool = true
 
 
 @description('Blob container name for JSON uploads.')
-param uploadsJsonContainerName string = 'json_data'
+param uploadsJsonContainerName string = 'json-data'
 
 @description('Blob container name for JSON uploads.')
-param uploadsDocumentContainerName string = 'document_data'
+param uploadsDocumentContainerName string = 'document-data'
 
 @description('Blob container name for processed documents.')
 param processedContainerName string = 'processed'
@@ -105,7 +105,7 @@ param createSearch bool = true
 @minLength(2)
 @maxLength(60)
 @description('Name for the Cognitive Search service to create (if createSearch = true). If blank, will generate.')
-param searchServiceName string = 'default-search'
+param searchServiceName string 
 
 @description('If not creating new, supply existing search service admin key.')
 @secure()
