@@ -241,6 +241,7 @@ var tags = {
   application: 'document-processor'
   environment: 'production'
   deployment: 'bicep'
+  SecurityControl: 'ignore'
 }
 
 // Generate unique values if needed

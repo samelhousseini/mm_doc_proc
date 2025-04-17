@@ -23,6 +23,9 @@ az configure --defaults group=$RESOURCE_GROUP_NAME location=$(az group show --na
 ENV_FILE="${SAVE_PATH}/.env.bicep_${RESOURCE_GROUP_NAME}"
 > "$ENV_FILE"  # Clear the file if it exists
 
+# Get Azure client ID for current session
+CLIENT_ID=$(az account get-access-token --query clientId -o tsv 2>/dev/null | tr -d '[:space:]')
+
 echo "Saving environment file to: $ENV_FILE"
 
 # Initialize counters for each resource type
@@ -43,6 +46,7 @@ echo "Getting resources from resource group: $RESOURCE_GROUP_NAME"
 echo "# Azure Subscription and Resource Group" >> $ENV_FILE
 echo "AZURE_SUBSCRIPTION_ID=\"$SUBSCRIPTION_ID\"" >> $ENV_FILE
 echo "AZURE_RESOURCE_GROUP=\"$RESOURCE_GROUP_NAME\"" >> $ENV_FILE
+echo "AZURE_CLIENT_ID=\"$CLIENT_ID\"" >> $ENV_FILE
 LOCATION=$(az group show --name $RESOURCE_GROUP_NAME --query "location" -o tsv 2>/dev/null | tr -d '[:space:]')
 echo "AZURE_RG_LOCATION=\"$LOCATION\"" >> $ENV_FILE
 echo "" >> $ENV_FILE

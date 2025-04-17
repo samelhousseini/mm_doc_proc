@@ -279,16 +279,16 @@ async def receive_messages():
               document = job.execute_job(container_name=AZURE_STORAGE_OUTPUT_CONTAINER_NAME)
               print(f"[{i}] Document processing job executed successfully.")
               break
-            except Exception as e:
-              print(f"[{i}] Exception processing message {str(msg)}: {e}")
-              continue
+            # except Exception as e:
+            #   print(f"[{i}] Exception processing message {str(msg)}: {e}")
+            #   continue
             finally:
               # Complete the message so that the message is removed from the queue
               await receiver.complete_message(raw_msg)
               received_msgs.remove(raw_msg)
               print(f"[{i}] Completed message: {str(msg)}")
-        except Exception as e:
-          print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
+        # except Exception as e:
+        #   print(f"An error occurred while receiving messages from the {queue_name} queue: {e}")
         finally:  
           await receiver.close()
           print(f"Receiver closed for queue: {queue_name}")

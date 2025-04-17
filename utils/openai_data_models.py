@@ -12,6 +12,7 @@ console = Console()
 
 
 def get_azure_endpoint(resource):
+    print(f">>>>> https://{resource}.openai.azure.com" if not "https://" in resource else resource)
     return f"https://{resource}.openai.azure.com" if not "https://" in resource else resource
 
 
@@ -196,7 +197,13 @@ def instantiate_model(model_info: Union[MulitmodalProcessingModelInfo,
             model_info.key = azure_gpt_4o_model_info["KEY"]
             model_info.model = azure_gpt_4o_model_info["MODEL"]
             model_info.api_version = azure_gpt_4o_model_info["API_VERSION"]
-
+        
+        elif model_info.model_name == "gpt-4.1":
+            model_info.endpoint = get_azure_endpoint(azure_gpt_41_model_info["RESOURCE"])
+            model_info.key = azure_gpt_41_model_info["KEY"]
+            model_info.model = azure_gpt_41_model_info["MODEL"]
+            model_info.api_version = azure_gpt_41_model_info["API_VERSION"]
+            
         elif model_info.model_name == "gpt-45":
             model_info.endpoint = get_azure_endpoint(azure_gpt_45_model_info["RESOURCE"])
             model_info.key = azure_gpt_45_model_info["KEY"]

@@ -94,6 +94,7 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
     ]
     
     if model_info.client is None: model_info = instantiate_model(model_info)
+    print(">>>>>>>>>>>>>>>>> call_llm model_info", model_info)
 
     if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
         return call_4(messages, model_info.client, model_info.model, temperature)
@@ -119,7 +120,7 @@ def call_4(messages, client, model, temperature = 0.2):
 
 @retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_41(messages, client, model, temperature = 0.2):
-    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     result = client.chat.completions.create(model = model, temperature = temperature, messages = messages)
     return result.choices[0].message.content
       
@@ -157,6 +158,8 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
     ]
 
     if model_info.client is None: model_info = instantiate_model(model_info)
+    print(">>>>>>>>>>>>>>>>> call_llm_structured_outputs model_info", model_info)
+
 
     if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
         return call_llm_structured_4(messages, model_info.client, model_info.model, response_format)
@@ -182,7 +185,7 @@ def call_llm_structured_4(messages, client, model, response_format):
 
 @retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_structured_41(messages, client, model, response_format):
-    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     completion = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
     return completion.choices[0].message.parsed
 

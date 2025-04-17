@@ -20,6 +20,7 @@ sys.path.append("../")
 sys.path.append("../../")
 
 
+
 # Import required modules
 from multimodal_processing_pipeline.configuration_models import ProcessingPipelineConfiguration
 from search.search_data_models import AISearchConfig
@@ -34,6 +35,10 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
+
+
+AZURE_STORAGE_OUTPUT_CONTAINER_NAME = os.getenv("AZURE_STORAGE_OUTPUT_CONTAINER_NAME", "processed")
+
 
 def main():
     """
@@ -87,7 +92,7 @@ def main():
     # Execute the job
     logger.info("Executing job...")
     try:
-        document = job.execute_job(container_name=document_id)
+        document = job.execute_job(container_name=AZURE_STORAGE_OUTPUT_CONTAINER_NAME)
         logger.info(f"Job executed successfully. Document ID: {document.metadata.document_id}")
         
         # Print summary of processed pages

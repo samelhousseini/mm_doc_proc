@@ -20,6 +20,8 @@ AUTO_ASSIGN=false
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROLE_DEFINITION_FILE="$SCRIPT_DIR/role-definition.json"
 
+ROLE_DEFINITION_FILE="database/shells/role-definition.json"
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
