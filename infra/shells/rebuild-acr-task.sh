@@ -7,7 +7,8 @@
 RESOURCE_GROUP=""
 ACR_NAME=""
 GIT_REPO="https://github.com/samelhousseini/mm_doc_proc.git"
-GIT_BRANCH="main"
+# GIT_BRANCH="main"
+GIT_BRANCH="pipeline_redesign"
 IMAGE_NAME="mm-doc-processor"
 IMAGE_TAG="latest"
 DOCKERFILE_PATH="Dockerfile"  # Path relative to repo root

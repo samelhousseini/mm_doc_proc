@@ -36,7 +36,9 @@ def get_encoder(model = "gpt-4o"):
     if model == "gpt-45":
         return tiktoken.get_encoding("o200k_base")       
     if model == "gpt-4o":
-        return tiktoken.get_encoding("o200k_base")       
+        return tiktoken.get_encoding("o200k_base")
+    if model == "gpt-4.1":
+        return tiktoken.get_encoding("o200k_base")           
     if model == "o1":
         return tiktoken.get_encoding("o200k_base")       
     if model == "mini":
@@ -95,6 +97,8 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
 
     if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
         return call_4(messages, model_info.client, model_info.model, temperature)
+    elif model_info.model_name == "gpt-4.1":
+        return call_41(messages, model_info.client, model_info.model, temperature)
     elif model_info.model_name == "o1":
         return call_o1(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
     elif model_info.model_name == "o1-mini":
@@ -109,6 +113,12 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
 
 @retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_4(messages, client, model, temperature = 0.2):
+    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    result = client.chat.completions.create(model = model, temperature = temperature, messages = messages)
+    return result.choices[0].message.content
+
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_41(messages, client, model, temperature = 0.2):
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     result = client.chat.completions.create(model = model, temperature = temperature, messages = messages)
     return result.choices[0].message.content
@@ -150,6 +160,8 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
 
     if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
         return call_llm_structured_4(messages, model_info.client, model_info.model, response_format)
+    elif model_info.model_name == "gpt-4.1":
+        return call_llm_structured_41(messages, model_info.client, model_info.model, response_format)
     elif model_info.model_name == "o1":
         return call_llm_structured_o1(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
     elif model_info.model_name == "o1-mini":
@@ -164,6 +176,12 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
 
 @retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_structured_4(messages, client, model, response_format):
+    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    completion = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
+    return completion.choices[0].message.parsed
+
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_llm_structured_41(messages, client, model, response_format):
     # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     completion = client.beta.chat.completions.parse(model=model, messages=messages, response_format=response_format)
     return completion.choices[0].message.parsed
@@ -282,6 +300,8 @@ def call_llm_functions(prompt_or_messages, tools, functions={}, temperature=0.2,
 
     if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
         return call_llm_functions_4(messages, model_info, tools, functions, temperature)
+    elif model_info.model_name == "gpt-4.1":
+        return call_llm_functions_41(messages, model_info, tools, functions, temperature)
     elif model_info.model_name == "o1":
         return call_llm_functions_o1(messages, model_info, tools, functions)
     elif model_info.model_name == "o1-mini":
@@ -298,6 +318,22 @@ def call_llm_functions(prompt_or_messages, tools, functions={}, temperature=0.2,
 def call_llm_functions_4(messages, model_info, tools, functions, temperature):
     """
     Calls the LLM (gpt-4o) with function calling enabled.
+    """
+    if model_info.client is None:
+        model_info = instantiate_model(model_info)
+    client = model_info.client
+    result = client.chat.completions.create(
+        model=model_info.model,
+        temperature=temperature,
+        messages=messages,
+        functions=tools
+    )
+    return process_function_call_result(result, functions)
+
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_llm_functions_41(messages, model_info, tools, functions, temperature):
+    """
+    Calls the LLM (gpt-4.1) with function calling enabled.
     """
     if model_info.client is None:
         model_info = instantiate_model(model_info)

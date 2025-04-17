@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "resourceGroupName": {
-      "value": "${AZURE_RESOURCE_GROUP=mmdocproc-v2-rg}"
+      "value": "${AZURE_RESOURCE_GROUP=mmdocproc-v6-rg}"
     },
     "location": {
       "value": "${AZURE_RG_LOCATION=swedencentral}"
@@ -21,16 +21,19 @@
       "value": ""
     },
     "existingOpenAiApiKey": {
-      "value": "${AZURE_OPENAI_KEY_4O=<key_for_oai_res>}"
+      "value": "${AZURE_OPENAI_KEY}"
     },
     "existingOpenAiResourceGroup": {
-      "value": "${AZURE_OPENAI_RESOURCE_GROUP=openai-resources}"
+      "value": "${AZURE_OPENAI_RESOURCE_GROUP}"
     },
     "existingOpenAiResource": {
-      "value": "${AZURE_OPENAI_RESOURCE_4O=<name_of_oai_res>}"
+      "value": "${AZURE_OPENAI_RESOURCE}"
     },
     "existingOpenAILocation": {
       "value": "${AZURE_OPENAI_LOCATION=swedencentral}"
+    },
+    "gpt41DeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_41=gpt-4.1}"
     },
     "gpt4oDeploymentName": {
       "value": "${AZURE_OPENAI_MODEL_4O=gpt-4o}"

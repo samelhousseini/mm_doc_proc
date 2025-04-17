@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # Script to assign storage roles and configure network access on Azure Storage Account
-# Usage: ./configure_storage_access.sh --resource-group <resource-group> --storage-account <storage-account> --principal-id <principal-id> [--network-action Allow|Deny]
+# Usage: ./configure_storage_access.sh --resource-group <resource-group> --storage-account <storage-account> --principal-id <principal-id> [--network-action Allow|Deny] [--subscription-id <subscription-id>]
 
 # Default values
 RESOURCE_GROUP=""
 STORAGE_ACCOUNT=""
 PRINCIPAL_ID=""
 NETWORK_ACTION="Allow"
+SUBSCRIPTION_ID=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -24,6 +25,14 @@ while [[ $# -gt 0 ]]; do
       PRINCIPAL_ID="$2"
       shift 2
       ;;
+    --network-action|-n)
+      NETWORK_ACTION="$2"
+      shift 2
+      ;;
+    --subscription-id)
+      SUBSCRIPTION_ID="$2"
+      shift 2
+      ;;
     --help|-h)
       echo "Usage: $0 [options]"
       echo "Options:"
@@ -31,6 +40,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --storage-account, -s    Name of the storage account"
       echo "  --principal-id, -p       Principal ID to grant storage roles to (e.g., managed identity)"
       echo "  --network-action, -n     Network action (Allow or Deny) for storage account (default: Allow)"
+      echo "  --subscription-id        Subscription ID to set the context (optional)"
       echo "  --help, -h               Show this help message"
       exit 0
       ;;
@@ -63,6 +73,22 @@ if [[ "$NETWORK_ACTION" != "Allow" && "$NETWORK_ACTION" != "Deny" ]]; then
   exit 1
 fi
 
+# Set Azure subscription if provided
+if [[ -n "$SUBSCRIPTION_ID" ]]; then
+  echo "Setting Azure subscription to: $SUBSCRIPTION_ID"
+  az account set --subscription "$SUBSCRIPTION_ID"
+fi
+
+# Map network action to Azure CLI public network access values
+if [[ "$NETWORK_ACTION" == "Allow" ]]; then
+  ACCESS="Enabled"
+elif [[ "$NETWORK_ACTION" == "Deny" ]]; then
+  ACCESS="Disabled"
+else
+  echo "Error: Network action must be 'Allow' or 'Deny'"
+  exit 1
+fi
+
 # Ensure user is logged in to Azure
 echo "Checking Azure login status..."
 ACCOUNT=$(az account show --query name -o tsv 2>/dev/null)
@@ -86,6 +112,7 @@ echo "Storage Account ID: $STORAGE_ACCOUNT_ID"
 # Assign Storage Blob Data Contributor role
 echo "Assigning Storage Blob Data Contributor role..."
 az role assignment create \
+  --subscription "$SUBSCRIPTION_ID" \
   --role "ba92f5b4-2d11-453d-a403-e96b0029c9fe" \
   --assignee-object-id "$PRINCIPAL_ID" \
   --assignee-principal-type User \
@@ -103,6 +130,7 @@ fi
 # Assign Storage Queue Data Contributor role
 echo "Assigning Storage Queue Data Contributor role..."
 az role assignment create \
+  --subscription "$SUBSCRIPTION_ID" \
   --role "974c5e8b-45b9-4653-ba55-5f855dd0fb88" \
   --assignee-object-id "$PRINCIPAL_ID" \
   --assignee-principal-type User \
@@ -118,11 +146,12 @@ else
 fi
 
 # Update storage account network access
-echo "Updating storage account network access to public..."
+echo "Updating storage account network access to $NETWORK_ACTION..."
 az storage account update \
+  --subscription "$SUBSCRIPTION_ID" \
   --resource-group "$RESOURCE_GROUP" \
   --name "$STORAGE_ACCOUNT" \
-  --public-network-access Enabled \
+  --public-network-access "$ACCESS" \
   --verbose 
 
 NETWORK_UPDATE_SUCCESS=$?

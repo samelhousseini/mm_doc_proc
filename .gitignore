@@ -191,3 +191,5 @@ downloaded_files/
 bicep/
 pipeline_config.json
 2_London_Brochure*.*
+.env.bicep*
+.env.1
