@@ -69,10 +69,16 @@ azure_o3_mini_model_info = {
 azure_o3_model_info = {
     "RESOURCE": azure_openai_resource,
     "KEY": azure_openai_key,
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O3', 'o3-mini'),
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O3', 'o3'),
     "API_VERSION": azure_openai_api_version
 }
 
+azure_o4_mini_model_info = {
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O4_MINI', 'o4-mini'),
+    "API_VERSION": azure_openai_api_version
+}
 
 azure_ada_embedding_model_info = {
     "RESOURCE": azure_openai_resource,
@@ -120,7 +126,7 @@ openai_o1_mini_model_info = {
 
 openai_o3_model_info = {
     "KEY": os.getenv('OPENAI_API_KEY'),
-    "MODEL": os.getenv('OPENAI_MODEL_O3')
+    "MODEL": os.getenv('OPENAI_MODEL_O3', 'o3')
 }
 
 openai_o3_mini_model_info = {
@@ -128,7 +134,10 @@ openai_o3_mini_model_info = {
     "MODEL": os.getenv('OPENAI_MODEL_O3_MINI')
 }
 
-
+openai_o4_mini_model_info = {
+    "KEY": os.getenv('OPENAI_API_KEY'),
+    "MODEL": os.getenv('OPENAI_MODEL_O4_MINI')
+}
 
 openai_embedding_model_info = {
     "KEY": os.getenv('OPENAI_API_KEY'),
@@ -159,7 +168,7 @@ class TextProcessingModelnfo(BaseModel):
     Information about the multimodal model name.
     """
     provider: Literal["azure", "openai"] = "azure"
-    model_name: Literal["gpt-4o", "gpt-45", "o1", "o1-mini", "o3", "o3-mini", "gpt-4.1", "o4-mini"] = "gpt-4.1"
+    model_name: Literal["gpt-4o", "gpt-45", "o1", "o1-mini", "o3", "gpt-4.1", "o3-mini", "o4-mini"] = "gpt-4.1"
     reasoning_efforts: Optional[Literal["low", "medium", "high"]] = "medium"    
     endpoint: str = ""
     key: str = ""
@@ -234,6 +243,12 @@ def instantiate_model(model_info: Union[MulitmodalProcessingModelInfo,
             model_info.model = azure_o3_mini_model_info["MODEL"]
             model_info.api_version = azure_o3_mini_model_info["API_VERSION"]
 
+        elif model_info.model_name == "o4-mini":
+            model_info.endpoint = get_azure_endpoint(azure_o4_mini_model_info["RESOURCE"])
+            model_info.key = azure_o4_mini_model_info["KEY"]
+            model_info.model = azure_o4_mini_model_info["MODEL"]
+            model_info.api_version = azure_o4_mini_model_info["API_VERSION"]
+
         elif model_info.model_name == "text-embedding-ada-002":
             model_info.endpoint = get_azure_endpoint(azure_ada_embedding_model_info["RESOURCE"])
             model_info.key = azure_ada_embedding_model_info["KEY"]
@@ -275,6 +290,10 @@ def instantiate_model(model_info: Union[MulitmodalProcessingModelInfo,
         elif model_info.model_name == "o3-mini":
             model_info.key = openai_o3_mini_model_info["KEY"]
             model_info.model = openai_o3_mini_model_info["MODEL"]
+
+        elif model_info.model_name == "o4-mini":
+            model_info.key = openai_o4_mini_model_info["KEY"]
+            model_info.model = openai_o4_mini_model_info["MODEL"]
 
         elif (model_info.model_name == "text-embedding-ada-002") or \
              (model_info.model_name == "text-embedding-3-small") or \

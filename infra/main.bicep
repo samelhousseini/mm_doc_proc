@@ -48,6 +48,9 @@ param o1MiniDeploymentName string = 'o1-mini'
 @description('o3-mini deployment name')
 param o3MiniDeploymentName string = 'o3-mini'
 
+@description('o4-mini deployment name')
+param o4MiniDeploymentName string = 'o4-mini'
+
 @description('Text embedding 3 Large deployment name')
 param textEmbedding3LargeDeploymentName string = 'text-embedding-3-large'
 
@@ -57,6 +60,7 @@ param AZURE_OPENAI_MODEL_4O string = 'gpt-4o'
 param AZURE_OPENAI_MODEL_O1 string = 'o1'
 param AZURE_OPENAI_MODEL_O1_MINI string = 'o1-mini'
 param AZURE_OPENAI_MODEL_O3_MINI string = 'o3-mini'
+param AZURE_OPENAI_MODEL_O4_MINI string = 'o4-mini'
 param AZURE_OPENAI_MODEL_EMBEDDING_LARGE string = 'text-embedding-3-large'
 
 // Conditional selection of values based on createOpenAi flag
@@ -64,6 +68,7 @@ var finalGpt4oDeploymentName = createOpenAi ? gpt4oDeploymentName : AZURE_OPENAI
 var finalO1DeploymentName = createOpenAi ? o1DeploymentName : AZURE_OPENAI_MODEL_O1
 var finalO1MiniDeploymentName = createOpenAi ? o1MiniDeploymentName : AZURE_OPENAI_MODEL_O1_MINI
 var finalO3MiniDeploymentName = createOpenAi ? o3MiniDeploymentName : AZURE_OPENAI_MODEL_O3_MINI
+var finalO4MiniDeploymentName = createOpenAi ? o4MiniDeploymentName : AZURE_OPENAI_MODEL_O4_MINI
 var finalTextEmbedding3LargeDeploymentName = createOpenAi ? textEmbedding3LargeDeploymentName : AZURE_OPENAI_MODEL_EMBEDDING_LARGE
 
 // ------------------ Log Analytics and Application Insights ------------------ //
@@ -396,6 +401,7 @@ module openai 'modules/openai.bicep' = {
     o1DeploymentName: finalO1DeploymentName
     o1MiniDeploymentName: finalO1MiniDeploymentName
     o3MiniDeploymentName: finalO3MiniDeploymentName
+    o4MiniDeploymentName: finalO4MiniDeploymentName
     textEmbedding3LargeDeploymentName: finalTextEmbedding3LargeDeploymentName
     userAssignedIdentityPrincipalId: uami.outputs.principalId
     tags: tags
@@ -525,6 +531,10 @@ module containerApps 'modules/container-apps.bicep' = {
       {
         name: 'AZURE_OPENAI_MODEL_O3_MINI'
         value: o3MiniDeploymentName
+      }
+      {
+        name: 'AZURE_OPENAI_MODEL_O4_MINI'
+        value: o4MiniDeploymentName
       }
       {
         name: 'AZURE_OPENAI_MODEL_O1'

@@ -41,8 +41,14 @@ def get_encoder(model = "gpt-4o"):
         return tiktoken.get_encoding("o200k_base")           
     if model == "o1":
         return tiktoken.get_encoding("o200k_base")       
-    if model == "mini":
+    if model == "o1-mini":
         return tiktoken.get_encoding("o200k_base")       
+    if model == "o3":
+        return tiktoken.get_encoding("o200k_base")
+    if model == "o3-mini":
+        return tiktoken.get_encoding("o200k_base")
+    if model == "o4-mini":
+        return tiktoken.get_encoding("o200k_base")
     else:
         return tiktoken.get_encoding("o200k_base")
 
@@ -108,6 +114,8 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
         return call_o3(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
     elif model_info.model_name == "o3-mini":
         return call_o3_mini(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
+    elif model_info.model_name == "o4-mini":
+        return call_o4_mini(messages, model_info.client, model_info.model, model_info.reasoning_efforts)
     else:
         return call_4(messages, model_info.client, model_info.model, temperature)
 
@@ -138,7 +146,7 @@ def call_o1_mini(messages,  client, model):
 
 @retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))       
 def call_o3(messages,  client, model, reasoning_effort ="medium"): 
-    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    print(f"\ncall_o3:: Calling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
     return response.model_dump()['choices'][0]['message']['content']
 
@@ -148,6 +156,11 @@ def call_o3_mini(messages,  client, model, reasoning_effort ="medium"):
     response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
     return response.model_dump()['choices'][0]['message']['content']
 
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_o4_mini(messages, client, model, reasoning_effort ="medium"): 
+    print(f"\ncall_o4_mini::Calling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    response = client.chat.completions.create(model=model, messages=messages, reasoning_effort=reasoning_effort)
+    return response.model_dump()['choices'][0]['message']['content']
 
 
 def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextProcessingModelnfo], response_format, imgs=[]):
@@ -173,6 +186,8 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
         return call_llm_structured_o3(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
     elif model_info.model_name == "o3-mini":
         return call_llm_structured_o3_mini(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
+    elif model_info.model_name == "o4-mini":
+        return call_llm_structured_o4_mini(messages, model_info.client, model_info.model, response_format, model_info.reasoning_efforts)
     else:
         return call_llm_structured_4(messages, model_info.client, model_info.model, response_format)
 
@@ -203,7 +218,7 @@ def call_llm_structured_o1_mini(messages, client, model, response_format):
 
 @retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
 def call_llm_structured_o3(messages, client, model, response_format, reasoning_effort ="medium"): 
-    # print(f"\nCalling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    print(f"\ncall_llm_structured_o3::Calling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
     response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
     return response.choices[0].message.parsed
 
@@ -213,6 +228,11 @@ def call_llm_structured_o3_mini(messages, client, model, response_format, reason
     response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
     return response.choices[0].message.parsed
 
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_llm_structured_o4_mini(messages, client, model, response_format, reasoning_effort ="medium"): 
+    print(f"\ncall_llm_structured_o4_mini::Calling OpenAI APIs with {len(messages)} messages - Model: {model} - Endpoint: {client._base_url}\n")
+    response = client.beta.chat.completions.parse(model=model, messages=messages, reasoning_effort=reasoning_effort, response_format=response_format)
+    return response.choices[0].message.parsed
 
 
 def process_function_call_result(result, functions):
@@ -313,6 +333,8 @@ def call_llm_functions(prompt_or_messages, tools, functions={}, temperature=0.2,
         return call_llm_functions_o3(messages, model_info, tools, functions)
     elif model_info.model_name == "o3-mini":
         return call_llm_functions_o3_mini(messages, model_info, tools, functions)
+    elif model_info.model_name == "o4-mini":
+        return call_llm_functions_o4_mini(messages, model_info, tools, functions)
     else:
         return call_llm_functions_4(messages, model_info, tools, functions, temperature)
 
@@ -404,6 +426,23 @@ def call_llm_functions_o3_mini(messages, model_info, tools, functions):
     """
     Calls the LLM (o3-mini) with function calling enabled.
     Note: The temperature parameter is not used for o3-mini models.
+    """
+    if model_info.client is None:
+        model_info = instantiate_model(model_info)
+    client = model_info.client
+    response = client.chat.completions.create(
+        model=model_info.model,
+        messages=messages,
+        functions=tools,
+        reasoning_effort=model_info.reasoning_efforts
+    )
+    return process_function_call_result(response, functions)
+
+@retry(wait=wait_random_exponential(min=1, max=30), stop=stop_after_attempt(10))
+def call_llm_functions_o4_mini(messages, model_info, tools, functions):
+    """
+    Calls the LLM (o4-mini) with function calling enabled.
+    Note: o4-mini is a reasoning model so we include reasoning_effort param
     """
     if model_info.client is None:
         model_info = instantiate_model(model_info)

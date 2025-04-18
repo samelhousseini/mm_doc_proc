@@ -115,6 +115,7 @@ echo "AZURE_OPENAI_MODEL_O3_MINI=\"o3-mini\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_O3=\"o3-mini\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_O1=\"o1\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_O1_MINI=\"o1-mini\"" >> $ENV_FILE
+echo "AZURE_OPENAI_MODEL_O4_MINI=\"o4-mini\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_EMBEDDING_ADA=\"text-embedding-ada-002\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_EMBEDDING_SMALL=\"text-embedding-3-small\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_EMBEDDING_LARGE=\"text-embedding-3-large\"" >> $ENV_FILE

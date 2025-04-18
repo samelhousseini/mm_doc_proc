@@ -47,6 +47,9 @@
     "o3MiniDeploymentName": {
       "value": "${AZURE_OPENAI_MODEL_O3_MINI=o3-mini}"
     },
+    "o4MiniDeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_O4_MINI=o4-mini}"
+    },
     "textEmbedding3LargeDeploymentName": {
       "value": "${AZURE_OPENAI_MODEL_EMBEDDING_LARGE=text-embedding-3-large}"
     },

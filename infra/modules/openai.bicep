@@ -29,6 +29,9 @@ param o1MiniDeploymentName string
 @description('o3-mini deployment name')
 param o3MiniDeploymentName string
 
+@description('o4-mini deployment name')
+param o4MiniDeploymentName string
+
 @description('Text embedding 3 Large deployment name')
 param textEmbedding3LargeDeploymentName string
 
@@ -70,7 +73,7 @@ resource assertValidNewName 'Microsoft.Resources/deploymentScripts@2020-10-01' =
 
 var debugLogs = {
   resourceDetails: 'OpenAI resource details: Name: ${openAiResourceName}, Create new: ${createOpenAi}, Endpoint: ${createOpenAi ? 'https://${openAiResourceName}.openai.azure.com/' : 'https://${existingOpenAiResource}.openai.azure.com/'}'
-  modelDeployments: 'Model deployments: GPT-4o: ${gpt4oDeploymentName}, GPT-4.1: ${gpt41DeploymentName}, o1: ${o1DeploymentName}, o1-mini: ${o1MiniDeploymentName}, o3-mini: ${o3MiniDeploymentName}, text-embedding-3-large: ${textEmbedding3LargeDeploymentName}'
+  modelDeployments: 'Model deployments: GPT-4o: ${gpt4oDeploymentName}, GPT-4.1: ${gpt41DeploymentName}, o1: ${o1DeploymentName}, o1-mini: ${o1MiniDeploymentName}, o3-mini: ${o3MiniDeploymentName}, o4-mini: ${o4MiniDeploymentName}, text-embedding-3-large: ${textEmbedding3LargeDeploymentName}'
 }
 
 // // Create the OpenAI resource if specified
@@ -170,6 +173,21 @@ resource o3MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023
     model: {
       format: 'OpenAI'
       name: 'o3-mini'
+    }
+  }
+}
+
+resource o4MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = if (createOpenAi && !empty(o4MiniDeploymentName)) {
+  parent: openAI
+  name: o4MiniDeploymentName
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 150
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'o4-mini'
     }
   }
 }
