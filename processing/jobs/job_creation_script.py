@@ -28,6 +28,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 from storage.azure_blob_storage import AzureBlobStorage
 from multimodal_processing_pipeline.configuration_models import ProcessingPipelineConfiguration
 from dotenv import load_dotenv
+from utils.openai_data_models import (
+    MulitmodalProcessingModelInfo,
+    TextProcessingModelnfo,
+    EmbeddingModelnfo  # In case you want an embedding model as well
+) 
+
 
 # Set up logging
 logging.basicConfig(
@@ -101,6 +107,16 @@ def create_config_from_document(
         translate_condensed_text=[],
         custom_page_processing_steps=[],
         custom_document_processing_steps=[]
+    )
+
+    config.multimodal_model = MulitmodalProcessingModelInfo(           
+        model_name="o4-mini",            
+        easoning_efforts="medium",      
+    )
+
+    config.text_model = TextProcessingModelnfo(
+        model_name="o3", 
+        reasoning_efforts="low",
     )
     
     # Generate a unique document ID

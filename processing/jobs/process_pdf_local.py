@@ -25,6 +25,12 @@ sys.path.append("../../")
 from multimodal_processing_pipeline.configuration_models import ProcessingPipelineConfiguration
 from search.search_data_models import AISearchConfig
 from orchestration.document_ingestion_job import DocumentIngestionJob
+from utils.openai_data_models import (
+    MulitmodalProcessingModelInfo,
+    TextProcessingModelnfo,
+    EmbeddingModelnfo  # In case you want an embedding model as well
+) 
+
 
 # Set up logging
 logging.basicConfig(
@@ -66,7 +72,7 @@ def main():
     # Create ProcessingPipelineConfiguration
     config = ProcessingPipelineConfiguration(
         pdf_path=sample_pdf_path,
-        output_directory=output_dir,
+        output_directory=None,
         resume_processing_if_interrupted=True,
         process_pages_as_jpg=True,
         process_text=True,
@@ -77,6 +83,17 @@ def main():
         generate_table_of_contents=True
     )
     
+    
+    config.multimodal_model = MulitmodalProcessingModelInfo(           
+        model_name="o4-mini",            
+        easoning_efforts="medium",      
+    )
+
+    config.text_model = TextProcessingModelnfo(
+        model_name="o3", 
+        reasoning_efforts="low",
+    )
+
     # Save the configuration to a JSON file
     config_path = os.path.join(output_dir, f"{document_id}_config.json")
     config.save_to_json(config_path)
