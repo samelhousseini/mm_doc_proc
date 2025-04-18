@@ -94,7 +94,7 @@ def call_llm(prompt: str, model_info: Union[MulitmodalProcessingModelInfo, TextP
     ]
     
     if model_info.client is None: model_info = instantiate_model(model_info)
-    print(">>>>>>>>>>>>>>>>> call_llm model_info", model_info)
+    # print(">>>>>>>>>>>>>>>>> call_llm model_info", model_info)
 
     if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
         return call_4(messages, model_info.client, model_info.model, temperature)
@@ -158,7 +158,7 @@ def call_llm_structured_outputs(prompt: str, model_info: Union[MulitmodalProcess
     ]
 
     if model_info.client is None: model_info = instantiate_model(model_info)
-    print(">>>>>>>>>>>>>>>>> call_llm_structured_outputs model_info", model_info)
+    # print(">>>>>>>>>>>>>>>>> call_llm_structured_outputs model_info", model_info)
 
 
     if (model_info.model_name == "gpt-4o") or ((model_info.model_name == "gpt-45")):
