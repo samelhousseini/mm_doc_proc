@@ -112,7 +112,7 @@ echo "AZURE_OPENAI_MODEL_45=\"gpt-4.5-preview\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_41=\"gpt-4.1\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_4O=\"gpt-4o\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_O3_MINI=\"o3-mini\"" >> $ENV_FILE
-echo "AZURE_OPENAI_MODEL_O3=\"o3-mini\"" >> $ENV_FILE
+echo "AZURE_OPENAI_MODEL_O3=\"o3\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_O1=\"o1\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_O1_MINI=\"o1-mini\"" >> $ENV_FILE
 echo "AZURE_OPENAI_MODEL_O4_MINI=\"o4-mini\"" >> $ENV_FILE
@@ -505,6 +505,7 @@ if [ "$cosmos_count" -gt "0" ]; then
           COSMOS_DB="proc-docs"
         fi
 
+        COSMOS_DB="proc-docs"
 
         echo "COSMOS_DB_NAME=\"$COSMOS_DB\"" >> $ENV_FILE
         
