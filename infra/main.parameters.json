@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "resourceGroupName": {
-      "value": "${AZURE_RESOURCE_GROUP=mmdocproc-v6-rg}"
+      "value": "${AZURE_RESOURCE_GROUP=mmdocproc-rg}"
     },
     "location": {
       "value": "${AZURE_RG_LOCATION=swedencentral}"
