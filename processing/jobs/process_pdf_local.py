@@ -60,6 +60,9 @@ def main():
     # Generate a unique document ID
     document_id = f"london_brochure_{uuid.uuid4().hex[:8]}"
     
+    output_dir = os.path.join(output_dir, document_id)
+    os.makedirs(output_dir, exist_ok=True)
+    
     # Create ProcessingPipelineConfiguration
     config = ProcessingPipelineConfiguration(
         pdf_path=sample_pdf_path,
