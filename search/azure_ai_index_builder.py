@@ -478,7 +478,7 @@ class DynamicAzureIndexBuilder:
                     )
 
         
-        if convert_post_processing_units:
+        if convert_post_processing_units and doc_content.post_processing_content:
             ppc = doc_content.post_processing_content
             if ppc.condensed_text and ppc.condensed_text.text and ppc.condensed_text.text.strip():
                 search_units.append(
@@ -493,8 +493,8 @@ class DynamicAzureIndexBuilder:
                     )
                 )
 
-            if convert_custom_processing_units:
-                for step in page.custom_document_processing_steps:
+            if convert_custom_processing_units and ppc.custom_document_processing_steps:
+                for step in ppc.custom_document_processing_steps:
                     search_units.append(
                         SearchUnit(
                             metadata=metadata.model_dump(),
@@ -536,14 +536,17 @@ class DynamicAzureIndexBuilder:
         return search_units
     
     @staticmethod
-    def load_search_units_from_folder(folder_path: Union[str, Path], convert_post_processing_units: bool = False) -> List[DataUnit]:
+    def load_search_units_from_folder(folder_path: Union[str, Path], convert_post_processing_units: bool = False) -> List[SearchUnit]:
         """
-        Load a DocumentContent from the given folder path, then convert it into DataUnits
-        by calling 'document_content_to_data_units'.
+        Load a DocumentContent from the given folder path, then convert it into SearchUnits
+        by calling 'document_content_to_search_units'.
         """
-        # 1) Reconstruct the DocumentContent using the pipeline's loader method
-        doc_content = PDFIngestionPipeline.load_document_content_from_json(folder_path)
+        # Use DocumentContent's static load method directly from the data model
+        doc_content = DocumentContent.load_from_directory(folder_path)
 
-        # 2) Convert to DataUnits
-        data_units = DynamicAzureIndexBuilder.document_content_to_search_units(doc_content, convert_post_processing_units=convert_post_processing_units)
-        return data_units    
+        # Convert to SearchUnits
+        search_units = DynamicAzureIndexBuilder.document_content_to_search_units(
+            doc_content, 
+            convert_post_processing_units=convert_post_processing_units
+        )
+        return search_units

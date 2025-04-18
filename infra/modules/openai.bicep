@@ -17,6 +17,9 @@ param existingOpenAiResource string = ''
 @description('GPT-4o deployment name')
 param gpt4oDeploymentName string
 
+@description('GPT-4.1 deployment name')
+param gpt41DeploymentName string
+
 @description('o1 deployment name')
 param o1DeploymentName string
 
@@ -67,7 +70,7 @@ resource assertValidNewName 'Microsoft.Resources/deploymentScripts@2020-10-01' =
 
 var debugLogs = {
   resourceDetails: 'OpenAI resource details: Name: ${openAiResourceName}, Create new: ${createOpenAi}, Endpoint: ${createOpenAi ? 'https://${openAiResourceName}.openai.azure.com/' : 'https://${existingOpenAiResource}.openai.azure.com/'}'
-  modelDeployments: 'Model deployments: GPT-4o: ${gpt4oDeploymentName}, o1: ${o1DeploymentName}, o1-mini: ${o1MiniDeploymentName}, o3-mini: ${o3MiniDeploymentName}, text-embedding-3-large: ${textEmbedding3LargeDeploymentName}'
+  modelDeployments: 'Model deployments: GPT-4o: ${gpt4oDeploymentName}, GPT-4.1: ${gpt41DeploymentName}, o1: ${o1DeploymentName}, o1-mini: ${o1MiniDeploymentName}, o3-mini: ${o3MiniDeploymentName}, text-embedding-3-large: ${textEmbedding3LargeDeploymentName}'
 }
 
 // // Create the OpenAI resource if specified
@@ -87,7 +90,7 @@ var debugLogs = {
 
 // Then, reference an existing OpenAI resource when not creating a new one
 resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = if (!createOpenAi) {
-  name: openAiResourceName
+  name: existingOpenAiResource
 }
 
 // // Use a variable to reference the appropriate resource based on condition
@@ -107,6 +110,21 @@ resource gpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-
     model: {
       format: 'OpenAI'
       name: 'gpt-4o'
+    }
+  }
+}
+
+resource gpt41Deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = if (createOpenAi && !empty(gpt41DeploymentName)) {
+  parent: openAI
+  name: gpt41DeploymentName
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 150
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-4.1'
     }
   }
 }

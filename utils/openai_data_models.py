@@ -12,76 +12,89 @@ console = Console()
 
 
 def get_azure_endpoint(resource):
+    print(f">>>>> https://{resource}.openai.azure.com" if not "https://" in resource else resource)
     return f"https://{resource}.openai.azure.com" if not "https://" in resource else resource
 
 
+# Use unified Azure OpenAI resource, key, and API version
+azure_openai_resource = os.getenv('AZURE_OPENAI_RESOURCE')
+azure_openai_key = os.getenv('AZURE_OPENAI_KEY')
+azure_openai_api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2024-12-01-preview')
+
+azure_gpt_41_model_info = {
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_41', 'gpt-4.1'),
+    "API_VERSION": azure_openai_api_version
+}
+
 azure_gpt_45_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_45'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_45'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_45'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_45')
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_45', 'gpt-4.5-preview'),
+    "API_VERSION": azure_openai_api_version
 }
 
 
 azure_gpt_4o_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_4O'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_4O'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_4O'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_4O')
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_4O', 'gpt-4o'),
+    "API_VERSION": azure_openai_api_version
 }
 
 azure_o1_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_O1'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_O1'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O1'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_O1')
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O1', 'o1'),
+    "API_VERSION": azure_openai_api_version
 }
 
 
 azure_o1_mini_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_O1_MINI'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_O1_MINI'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O1_MINI'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_O1_MINI')
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O1_MINI', 'o1-mini'),
+    "API_VERSION": azure_openai_api_version
 }
 
 
 azure_o3_mini_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_O3_MINI'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_O3_MINI'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O3_MINI'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_O3_MINI')
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O3_MINI', 'o3-mini'),
+    "API_VERSION": azure_openai_api_version
 }
 
 azure_o3_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_3'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_O3'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O3'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_O3')
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_O3', 'o3-mini'),
+    "API_VERSION": azure_openai_api_version
 }
 
 
 azure_ada_embedding_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_EMBEDDING_ADA'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_EMBEDDING_ADA'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_EMBEDDING_ADA'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_EMBEDDING_ADA'),
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_EMBEDDING_ADA', 'text-embedding-ada-002'),
+    "API_VERSION": azure_openai_api_version,
     "DIMS": 1536
 }
 
 azure_small_embedding_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_EMBEDDING_SMALL'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_EMBEDDING_SMALL'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_EMBEDDING_SMALL'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_EMBEDDING_SMALL'),
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_EMBEDDING_SMALL', 'text-embedding-3-small'),
+    "API_VERSION": azure_openai_api_version,
     "DIMS": 1536
 }
 
 azure_large_embedding_model_info = {
-    "RESOURCE": os.getenv('AZURE_OPENAI_RESOURCE_EMBEDDING_LARGE'),
-    "KEY": os.getenv('AZURE_OPENAI_KEY_EMBEDDING_LARGE'),
-    "MODEL": os.getenv('AZURE_OPENAI_MODEL_EMBEDDING_LARGE'),
-    "API_VERSION": os.getenv('AZURE_OPENAI_API_VERSION_EMBEDDING_LARGE'),
+    "RESOURCE": azure_openai_resource,
+    "KEY": azure_openai_key,
+    "MODEL": os.getenv('AZURE_OPENAI_MODEL_EMBEDDING_LARGE', 'text-embedding-3-large'),
+    "API_VERSION": azure_openai_api_version,
     "DIMS": 3072
 }
 
@@ -130,7 +143,7 @@ class MulitmodalProcessingModelInfo(BaseModel):
     Information about the multimodal model name.
     """
     provider: Literal["azure", "openai"] = "azure"
-    model_name: Literal["gpt-4o", "gpt-45", "o1"] = "gpt-4o"
+    model_name: Literal["gpt-4o", "gpt-45", "o1", "gpt-4.1", "o3", "o4-mini"] = "gpt-4.1"
     reasoning_efforts: Optional[Literal["low", "medium", "high"]] = "medium"    
     endpoint: str = ""
     key: str = ""
@@ -146,7 +159,7 @@ class TextProcessingModelnfo(BaseModel):
     Information about the multimodal model name.
     """
     provider: Literal["azure", "openai"] = "azure"
-    model_name: Literal["gpt-4o", "gpt-45", "o1", "o1-mini", "o3", "o3-mini"] = "gpt-4o"
+    model_name: Literal["gpt-4o", "gpt-45", "o1", "o1-mini", "o3", "o3-mini", "gpt-4.1", "o4-mini"] = "gpt-4.1"
     reasoning_efforts: Optional[Literal["low", "medium", "high"]] = "medium"    
     endpoint: str = ""
     key: str = ""
@@ -184,7 +197,13 @@ def instantiate_model(model_info: Union[MulitmodalProcessingModelInfo,
             model_info.key = azure_gpt_4o_model_info["KEY"]
             model_info.model = azure_gpt_4o_model_info["MODEL"]
             model_info.api_version = azure_gpt_4o_model_info["API_VERSION"]
-
+        
+        elif model_info.model_name == "gpt-4.1":
+            model_info.endpoint = get_azure_endpoint(azure_gpt_41_model_info["RESOURCE"])
+            model_info.key = azure_gpt_41_model_info["KEY"]
+            model_info.model = azure_gpt_41_model_info["MODEL"]
+            model_info.api_version = azure_gpt_41_model_info["API_VERSION"]
+            
         elif model_info.model_name == "gpt-45":
             model_info.endpoint = get_azure_endpoint(azure_gpt_45_model_info["RESOURCE"])
             model_info.key = azure_gpt_45_model_info["KEY"]

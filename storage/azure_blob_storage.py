@@ -29,6 +29,9 @@ from multimodal_processing_pipeline.data_models import (
 )
 
 
+from rich.console import Console
+console = Console()
+
 
 # The new data models with DataUnit, PostProcessingContent, etc.
 from multimodal_processing_pipeline.data_models import (
@@ -377,6 +380,7 @@ class AzureBlobStorage:
         if not data_unit:
             return
 
+        print(f"Uploading DataUnit to container '{container_name}'...")
         # 1) Upload the text_file_path if present
         if data_unit.text_file_path and Path(data_unit.text_file_path).is_file():
             file_path = Path(data_unit.text_file_path)
@@ -416,7 +420,8 @@ class AzureBlobStorage:
           - Each PageContent (images, text, tables) in subfolders.
         Updates the relevant fields in DocumentContent with Azure blob URIs.
         """
-
+        console.print("Document Metadata")
+        console.print(document_content.metadata)
         if document_content.metadata and document_content.metadata.document_id:
             blob_prefix = document_content.metadata.document_id 
         else:
@@ -428,6 +433,8 @@ class AzureBlobStorage:
                 container_name = document_content.metadata.document_id 
             else:
                 container_name = "default-container"
+
+        print(f"Uploading document content to container '{container_name}', with blob_prefix {blob_prefix}...")
 
         # Ensure container exists
         safe_container = self._safe_container_name(container_name)

@@ -8,13 +8,19 @@
 # Set default values
 RESOURCE_GROUP=""
 ACCOUNT_NAME=""
-ROLE_DEFINITION_FILE="role-definition.json"
+ROLE_DEFINITION_FILE="database/shells/role-definition.json"
 ROLE_DEFINITION_ID=""
 PRINCIPAL_ID=""
 SUBSCRIPTION_ID=""
 COSMOS_SCOPE=""
 ROLE_NAME=""
 AUTO_ASSIGN=false
+
+# Determine script directory and default role definition file path
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROLE_DEFINITION_FILE="$SCRIPT_DIR/role-definition.json"
+
+ROLE_DEFINITION_FILE="database/shells/role-definition.json"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -39,7 +45,7 @@ while [[ $# -gt 0 ]]; do
       PRINCIPAL_ID="$2"
       shift 2
       ;;
-    --subscription-id|-s)
+    --subscription-id|-i)
       SUBSCRIPTION_ID="$2"
       shift 2
       ;;
@@ -59,7 +65,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --role-definition-file, -f  Path to role definition JSON file (default: role-definition.json)"
       echo "  --role-definition-id, -r  Role definition ID (required for role assignment)"
       echo "  --principal-id, -p       Principal ID for role assignment"
-      echo "  --subscription-id, -s    Subscription ID"
+      echo "  --subscription-id, -i    Subscription ID"
       echo "  --role-name, -n          Role name to look for in the list of role definitions"
       echo "  --auto-assign, -aa       Automatically assign the role after creating the definition"
       echo "  --help, -h               Show this help message"
@@ -71,6 +77,12 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Set subscription context if provided
+if [[ -n "$SUBSCRIPTION_ID" ]]; then
+  echo "Setting Azure subscription to: $SUBSCRIPTION_ID"
+  az account set --subscription "$SUBSCRIPTION_ID"
+fi
 
 # Check required parameters
 if [[ -z "$RESOURCE_GROUP" ]]; then
@@ -85,7 +97,10 @@ fi
 
 # Create a new role definition
 echo "Creating new role definition from $ROLE_DEFINITION_FILE..."
-az cosmosdb sql role definition create --resource-group "$RESOURCE_GROUP" --account-name "$ACCOUNT_NAME" --body "@$ROLE_DEFINITION_FILE"
+az cosmosdb sql role definition create \
+  --resource-group "$RESOURCE_GROUP" \
+  --account-name "$ACCOUNT_NAME" \
+  --body @${ROLE_DEFINITION_FILE}
 
 # List role definitions
 echo "Listing role definitions..."
@@ -151,11 +166,3 @@ else
   echo -e "\nAvailable role definitions:"
   echo "$ROLE_DEFINITIONS" | jq -r '.[] | "ID: \(.id)\nName: \(.roleName)\n"'
 fi
-
-
-echo "Resetting public network access to ENABLED..."
-az cosmosdb update \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$ACCOUNT_NAME" \
-    --public-network-access ENABLED \
-    --verbose 

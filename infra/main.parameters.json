@@ -18,19 +18,22 @@
       "value": false
     },
     "openAiResourceName": {
-      "value": "${AZURE_OPENAI_RESOURCE_4O=aoai-res}"
+      "value": ""
     },
     "existingOpenAiApiKey": {
-      "value": "${AZURE_OPENAI_KEY_4O}"
+      "value": "${AZURE_OPENAI_KEY}"
     },
     "existingOpenAiResourceGroup": {
-      "value": "${AZURE_OPENAI_RESOURCE_GROUP=openai-resources}"
+      "value": "${AZURE_OPENAI_RESOURCE_GROUP}"
     },
     "existingOpenAiResource": {
-      "value": "${AZURE_OPENAI_RESOURCE_4O}"
+      "value": "${AZURE_OPENAI_RESOURCE}"
     },
     "existingOpenAILocation": {
       "value": "${AZURE_OPENAI_LOCATION=swedencentral}"
+    },
+    "gpt41DeploymentName": {
+      "value": "${AZURE_OPENAI_MODEL_41=gpt-4.1}"
     },
     "gpt4oDeploymentName": {
       "value": "${AZURE_OPENAI_MODEL_4O=gpt-4o}"
@@ -63,10 +66,10 @@
       "value": ""
     },
     "uploadsJsonContainerName": {
-      "value": "json_data"
+      "value": "json-data"
     },
     "uploadsDocumentContainerName": {
-      "value": "document_data"
+      "value": "document-data"
     },
     "processedContainerName": {
       "value": "processed"
@@ -78,7 +81,7 @@
       "value": true
     },
     "searchServiceName": {
-      "value": "mmdpsearch"
+      "value": ""
     },
     "existingSearchAdminKey": {
       "value": "${AZURE_AI_SEARCH_API_KEY}"

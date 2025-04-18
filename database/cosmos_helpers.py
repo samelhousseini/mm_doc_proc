@@ -10,7 +10,9 @@ from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from azure.identity import DefaultAzureCredential
 from azure.identity import ManagedIdentityCredential
 
+from rich.console import Console
 
+console = Console()
 
 COSMOS_URI =  os.getenv("COSMOS_URI")
 COSMOS_DB_NAME = os.getenv("COSMOS_DB_NAME")
@@ -69,6 +71,7 @@ class CosmosDBHelper:
             return []
 
     def upsert_document(self, document):
+        # console.print(f"Upserting document: {document}")
         try:
             return self.container.upsert_item(body=document)
         except Exception as e:

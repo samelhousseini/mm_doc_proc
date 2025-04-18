@@ -33,6 +33,9 @@ param existingOpenAiResource string
 param existingOpenAILocation string
 
 // Model deployment parameters with environment fallbacks when using existing resources
+@description('GPT-4.1 deployment name')
+param gpt41DeploymentName string = 'gpt-4.1'
+
 @description('GPT-4o deployment name')
 param gpt4oDeploymentName string = 'gpt-4o'
 
@@ -49,6 +52,7 @@ param o3MiniDeploymentName string = 'o3-mini'
 param textEmbedding3LargeDeploymentName string = 'text-embedding-3-large'
 
 // Environment variable values (to use when createOpenAi=false)
+param AZURE_OPENAI_MODEL_41 string = 'gpt-4.1'
 param AZURE_OPENAI_MODEL_4O string = 'gpt-4o'
 param AZURE_OPENAI_MODEL_O1 string = 'o1'
 param AZURE_OPENAI_MODEL_O1_MINI string = 'o1-mini'
@@ -86,10 +90,10 @@ param createStorage bool = true
 
 
 @description('Blob container name for JSON uploads.')
-param uploadsJsonContainerName string = 'json_data'
+param uploadsJsonContainerName string = 'json-data'
 
 @description('Blob container name for JSON uploads.')
-param uploadsDocumentContainerName string = 'document_data'
+param uploadsDocumentContainerName string = 'document-data'
 
 @description('Blob container name for processed documents.')
 param processedContainerName string = 'processed'
@@ -105,7 +109,7 @@ param createSearch bool = true
 @minLength(2)
 @maxLength(60)
 @description('Name for the Cognitive Search service to create (if createSearch = true). If blank, will generate.')
-param searchServiceName string = 'default-search'
+param searchServiceName string 
 
 @description('If not creating new, supply existing search service admin key.')
 @secure()
@@ -237,6 +241,7 @@ var tags = {
   application: 'document-processor'
   environment: 'production'
   deployment: 'bicep'
+  SecurityControl: 'ignore'
 }
 
 // Generate unique values if needed
@@ -387,6 +392,7 @@ module openai 'modules/openai.bicep' = {
     existingOpenAiApiKey: existingOpenAiApiKey
     existingOpenAiResource: existingOpenAiResource
     gpt4oDeploymentName: finalGpt4oDeploymentName
+    gpt41DeploymentName: gpt41DeploymentName
     o1DeploymentName: finalO1DeploymentName
     o1MiniDeploymentName: finalO1MiniDeploymentName
     o3MiniDeploymentName: finalO3MiniDeploymentName
@@ -497,64 +503,44 @@ module containerApps 'modules/container-apps.bicep' = {
         value: uami.outputs.clientId
       }
       {
-        name: 'AZURE_OPENAI_RESOURCE_4O'
+        name: 'AZURE_OPENAI_RESOURCE'
         value: openai.outputs.openAiName
+      }
+      {
+        name: 'AZURE_OPENAI_KEY'
+        value: openai.outputs.openAiKeyAvailable ? existingOpenAiApiKey : ''
+      }
+      {
+        name: 'AZURE_OPENAI_API_VERSION'
+        value: '2024-12-01-preview'
+      }
+      {
+        name: 'AZURE_OPENAI_MODEL_41'
+        value: gpt41DeploymentName
       }
       {
         name: 'AZURE_OPENAI_MODEL_4O'
         value: gpt4oDeploymentName
       }
       {
-        name: 'AZURE_OPENAI_API_VERSION_4O'
-        value: '2024-12-01-preview'
-      }
-      {
-        name: 'AZURE_OPENAI_RESOURCE_O3_MINI'
-        value: openai.outputs.openAiName
-      }
-      {
         name: 'AZURE_OPENAI_MODEL_O3_MINI'
         value: o3MiniDeploymentName
-      }
-      {
-        name: 'AZURE_OPENAI_API_VERSION_O3_MINI'
-        value: '2024-12-01-preview'
-      }
-      {
-        name: 'AZURE_OPENAI_RESOURCE_O1'
-        value: openai.outputs.openAiName
       }
       {
         name: 'AZURE_OPENAI_MODEL_O1'
         value: o1DeploymentName
       }
       {
-        name: 'AZURE_OPENAI_API_VERSION_O1'
-        value: '2024-12-01-preview'
-      }
-      {
-        name: 'AZURE_OPENAI_RESOURCE_O1_MINI'
-        value: openai.outputs.openAiName
-      }
-      {
         name: 'AZURE_OPENAI_MODEL_O1_MINI'
         value: o1MiniDeploymentName
-      }
-      {
-        name: 'AZURE_OPENAI_API_VERSION_O1_MINI'
-        value: '2024-12-01-preview'
-      }
-      {
-        name: 'AZURE_OPENAI_RESOURCE_EMBEDDING_LARGE'
-        value: openai.outputs.openAiName
       }
       {
         name: 'AZURE_OPENAI_MODEL_EMBEDDING_LARGE'
         value: textEmbedding3LargeDeploymentName
       }
       {
-        name: 'AZURE_OPENAI_API_VERSION_EMBEDDING_LARGE'
-        value: '2024-12-01-preview'
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: openai.outputs.openAiEndpoint
       }
       {
         name: 'AZURE_AI_SEARCH_SERVICE_NAME'
@@ -635,38 +621,6 @@ module containerApps 'modules/container-apps.bicep' = {
       {
         name: 'SERVICE_BUS_CONNECTION_STRING'
         value: namespace.outputs.connectionString
-      }
-      {
-        name: 'AZURE_OPENAI_API_KEY'
-        value: openai.outputs.openAiKeyAvailable ? existingOpenAiApiKey : ''
-      }
-      {
-        name: 'AZURE_OPENAI_ENDPOINT'
-        value: openai.outputs.openAiEndpoint
-      }
-      {
-        name: 'AZURE_OPENAI_API_VERSION'
-        value: '2024-12-01-preview'
-      }
-      {
-        name: 'AZURE_OPENAI_API_KEY_O3_MINI'
-        value: openai.outputs.openAiKeyAvailable ? existingOpenAiApiKey : ''
-      }
-      {
-        name: 'AZURE_OPENAI_API_KEY_O1'
-        value: openai.outputs.openAiKeyAvailable ? existingOpenAiApiKey : ''
-      }
-      {
-        name: 'AZURE_OPENAI_API_KEY_O1_MINI'
-        value: openai.outputs.openAiKeyAvailable ? existingOpenAiApiKey : ''
-      }
-      {
-        name: 'AZURE_OPENAI_API_KEY_EMBEDDING_LARGE'
-        value: openai.outputs.openAiKeyAvailable ? existingOpenAiApiKey : ''
-      }
-      {
-        name: 'AZURE_OPENAI_API_KEY_4O'
-        value: openai.outputs.openAiKeyAvailable ? existingOpenAiApiKey : ''
       }
     ]
   }
@@ -776,6 +730,7 @@ output resolvedParameters object = {
   createOpenAi: createOpenAi
   openAiResourceName: openAiResourceName
   environmentVariableValues: {
+    AZURE_OPENAI_MODEL_41: AZURE_OPENAI_MODEL_41
     AZURE_OPENAI_MODEL_4O: AZURE_OPENAI_MODEL_4O
     AZURE_OPENAI_MODEL_O1: AZURE_OPENAI_MODEL_O1
     AZURE_OPENAI_MODEL_O1_MINI: AZURE_OPENAI_MODEL_O1_MINI

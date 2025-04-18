@@ -63,8 +63,6 @@ class PDFIngestionPipeline:
       - Managing the pipeline state to allow resuming if interrupted
 
     The methods below are grouped into logical sections with detailed comments.
-    IMPORTANT: Code lines remain exactly the same; only the order of methods has changed
-               and additional comments were added. No existing lines were altered.
     ------------------------------------------------------------------------------------
     """
 
@@ -122,7 +120,7 @@ class PDFIngestionPipeline:
         """
         Creates the output directory structure:
           - Root output folder
-          - Pages folder (for each page’s data)
+          - Pages folder (for each page's data)
         """
         os.makedirs(self.output_directory, exist_ok=True)
         os.makedirs(self.output_directory / "pages", exist_ok=True)
@@ -178,12 +176,8 @@ class PDFIngestionPipeline:
         Helps resume processing if it was previously interrupted.
         """
         state_file = self.output_directory / "pipeline_state.json"
-        if state_file.is_file():
-            console.print("[green]Loading pipeline state from disk...[/green]")
-            data = read_json_file(state_file)
-            self.pipeline_state = PipelineState(**data)
-        else:
-            self.pipeline_state = PipelineState()
+        self.pipeline_state = PipelineState.load_from_json(str(state_file))
+        console.print("[green]Pipeline state loaded.[/green]")
 
     def _save_pipeline_state(self) -> None:
         """
@@ -192,16 +186,7 @@ class PDFIngestionPipeline:
         """
         state_file = self.output_directory / "pipeline_state.json"
         console.print("[blue]Saving pipeline state to disk...[/blue]")
-
-        # 1) Dump to a Python dict:
-        data = self.pipeline_state.model_dump()
-
-        # 2) Convert that dict to JSON with your desired formatting:
-        json_str = json.dumps(data, indent=2, ensure_ascii=False)
-        
-        # 3) Write to disk:
-        with open(state_file, "w", encoding="utf-8") as f:
-            f.write(json_str)
+        self.pipeline_state.save_to_json(state_file)
 
     # ========================================================================================
     # =======================  3) PAGE-LEVEL EXTRACTION/PROCESSING METHODS  ===================
@@ -251,20 +236,18 @@ class PDFIngestionPipeline:
 
         console.print("[bold magenta]Extracted/Processed Text:[/bold magenta]", text)
 
-        page_dir = self.output_directory / "pages" / f"page_{page_number}"
-        page_dir.mkdir(parents=True, exist_ok=True)
-
-        text_filename = page_dir / f"page_{page_number}.txt"
-        write_to_file(text, text_filename, mode="w")
-
+        # Create ExtractedText object with DataUnit
         extracted_text = ExtractedText(
             page_number=page_number,
             text=DataUnit(
                 text=text,
-                text_file_path=convert_path(str(text_filename)),
                 page_image_path=convert_path(str(page_image_path))
             )
         )
+        
+        # Use the model's save_to_directory method to save the text to the right location
+        extracted_text.save_to_directory(self.output_directory)
+        
         return extracted_text
 
     def _extract_images_from_page(self, page_image_path: str, page_number: int) -> List[ExtractedImage]:
@@ -279,19 +262,13 @@ class PDFIngestionPipeline:
         image_results = analyze_images(page_image_path, model_info=self._mm_model)
 
         if image_results.detected_visuals:
-            # ensure subfolder: pages/page_{page_number}/images
-            images_dir = self.output_directory / "pages" / f"page_{page_number}" / "images"
-            images_dir.mkdir(parents=True, exist_ok=True)
-
+            # Create each ExtractedImage and save it
             for i, img in enumerate(image_results.detected_visuals):
-                text_filename = images_dir / f"page_{page_number}_{img.visual_type}_{i+1}.txt"
                 full_image_text = (
                     f"{img.visual_description}\n\n"
                     f"{img.contextual_relevance}\n\n"
                     f"{img.analysis}"
                 )
-
-                write_to_file(full_image_text, text_filename, mode="w")
 
                 extracted_image = ExtractedImage(
                     page_number=page_number,
@@ -299,10 +276,12 @@ class PDFIngestionPipeline:
                     image_type=img.visual_type,
                     text=DataUnit(
                         text=full_image_text,
-                        text_file_path=convert_path(str(text_filename)),
                         page_image_path=convert_path(str(page_image_path))
                     )
                 )
+                
+                # Save the image using its built-in method
+                extracted_image.save_to_directory(self.output_directory, i)
                 images.append(extracted_image)
 
         console.print("[bold cyan]Extracted Images:[/bold cyan]", images)
@@ -320,28 +299,25 @@ class PDFIngestionPipeline:
         table_results = analyze_tables(page_image_path, model_info=self._mm_model)
 
         if table_results.detected_tables_detailed_markdown:
-            tables_dir = self.output_directory / "pages" / f"page_{page_number}" / "tables"
-            tables_dir.mkdir(parents=True, exist_ok=True)
-
+            # Create each ExtractedTable and save it
             for i, tbl in enumerate(table_results.detected_tables_detailed_markdown):
-                text_filename = tables_dir / f"page_{page_number}_table_{i+1}.txt"
                 full_table_text = (
                     f"{tbl.markdown}\n\n"
                     f"{tbl.contextual_relevance}\n\n"
                     f"{tbl.analysis}"
                 )
 
-                write_to_file(full_table_text, text_filename, mode="w")
-
                 extracted_table = ExtractedTable(
                     page_number=page_number,
                     text=DataUnit(
                         text=tbl.markdown,
-                        text_file_path=convert_path(str(text_filename)),
                         page_image_path=convert_path(str(page_image_path))
                     ),
                     summary=f"{tbl.contextual_relevance}\n\n{tbl.analysis}"
                 )
+                
+                # Save the table using its built-in method
+                extracted_table.save_to_directory(self.output_directory, i)
                 tables.append(extracted_table)
 
         console.print("[bold green]Extracted Tables:[/bold green]", tables)
@@ -362,37 +338,41 @@ class PDFIngestionPipeline:
         
         Returns the combined content as a string.
         """
-        combined = f"##### --- Page {extracted_text.page_number} ---\n\n"
-        combined += "# Extracted Text\n\n"
-        if extracted_text.text and extracted_text.text.text:
-            combined += f"{extracted_text.text.text}\n\n"
-
-        if images:
-            combined += "\n# Embedded Images:\n\n"
-            for i, image in enumerate(images):
-                combined += f"### - Image {i+1}:\n"
-                if image.text and image.text.text:
-                    combined += f"{image.text.text}\n\n"
-
-        if tables:
-            combined += "\n# Tables:\n\n"
-            for i, table in enumerate(tables):
-                combined += f"### - Table {i+1}:\n\n"
-                if table.text and table.text.text:
-                    combined += f"{table.text.text}\n\n"
-                if table.summary:
-                    combined += f"Summary:\n{table.summary}\n\n"
-
-        combined += (
-            f'<br/>\n<br/>\n<img src="{page_image_path}" '
-            f'alt="Page Number {page_number}" width="300" height="425">'
+        # Create a PageContent object to use its combine_content method
+        page_content = PageContent(
+            page_number=page_number,
+            text=extracted_text,
+            page_image_path=convert_path(page_image_path),
+            images=images,
+            tables=tables
         )
-        combined += "\n\n\n\n"
-        return combined
+        
+        # Generate combined text using model's built-in method
+        combined_str = page_content.combine_content()
+        
+        # Create DataUnit for the combined content
+        page_dir = self.output_directory / "pages" / f"page_{page_number}"
+        page_dir.mkdir(parents=True, exist_ok=True)
+        
+        page_text_unit = DataUnit(
+            text=combined_str,
+            page_image_path=convert_path(page_image_path)
+        )
+        
+        # Save the combined content
+        page_text_filename = f"page_{page_number}_twin.txt"
+        page_text_unit.save_to_file(page_dir, page_text_filename)
+        
+        # Update the page content with the combined text
+        page_content.page_text = page_text_unit
+        
+        return combined_str
 
 
     def apply_page_processing_steps(self, page_text: str, page_number: int, page_dir: str, page_image_path: str) -> List[DataUnit]:
-        # Custom page processing
+        """
+        Applies custom page processing steps to the page text.
+        """
         data_units = []
 
         custom_proc_dir = page_dir / "custom_processing"
@@ -419,15 +399,18 @@ class PDFIngestionPipeline:
                                                                             imgs = imgs
                                                                         )
                 
-                write_to_file(custom_processed_text, custom_processed_text_path, mode="w")        
+                # Create DataUnit and save it using model's method
+                data_unit = DataUnit(
+                    text=custom_processed_text,
+                    page_image_path=convert_path(page_image_path)
+                )
+                data_unit.save_to_file(custom_proc_dir, custom_processed_text_path.name)
+                
             else:
-                custom_processed_text = read_asset_file(custom_processed_text_path)[0]
-
-            data_units.append(DataUnit(
-                text=custom_processed_text,
-                text_file_path=convert_path(str(custom_processed_text_path)),
-                page_image_path=convert_path(page_image_path)
-            ))
+                # Load existing data unit
+                data_unit = DataUnit.load_from_file(custom_processed_text_path, page_image_path)
+            
+            data_units.append(data_unit)
         
         self.pipeline_state.custom_page_processing.append(page_number)
 
@@ -446,15 +429,18 @@ class PDFIngestionPipeline:
         """
         page_dir = self.output_directory / "pages" / f"page_{page_number}"
         text_file = page_dir / f"page_{page_number}.txt"
-        text_str = text_file.read_text(encoding="utf-8") if text_file.is_file() else ""
-        return ExtractedText(
-            page_number=page_number,
-            text=DataUnit(
-                text=text_str,
-                text_file_path=convert_path(str(text_file)) if text_file.is_file() else None,
-                page_image_path=convert_path(str(page_image_path))
+        
+        if text_file.is_file():
+            return ExtractedText.load_from_file(text_file, page_number, page_image_path)
+        else:
+            # Return empty ExtractedText if file doesn't exist
+            return ExtractedText(
+                page_number=page_number,
+                text=DataUnit(
+                    text="",
+                    page_image_path=convert_path(str(page_image_path))
+                )
             )
-        )
 
     def _load_extracted_images(self, page_number: int, page_image_path: str) -> List[ExtractedImage]:
         """
@@ -477,17 +463,12 @@ class PDFIngestionPipeline:
                 continue
 
             page_num_str, visual_type_str, idx_str = match.groups()
-            text_for_img = text_file.read_text(encoding="utf-8")
-
-            extracted_image = ExtractedImage(
-                page_number=int(page_num_str),
-                image_path=convert_path(str(page_image_path)),  # re-use the main page image path
-                image_type=visual_type_str,
-                text=DataUnit(
-                    text=text_for_img,
-                    text_file_path=convert_path(str(text_file)),
-                    page_image_path=convert_path(str(page_image_path))
-                )
+            # Use the model's load_from_file method
+            extracted_image = ExtractedImage.load_from_file(
+                text_file, 
+                page_number, 
+                convert_path(str(page_image_path)),
+                visual_type_str
             )
             images_list.append(extracted_image)
 
@@ -512,17 +493,11 @@ class PDFIngestionPipeline:
             if not match:
                 continue
 
-            page_num_str, table_idx_str = match.groups()
-            tbl_content = tbl_file.read_text(encoding="utf-8")
-
-            extracted_table = ExtractedTable(
-                page_number=int(page_num_str),
-                text=DataUnit(
-                    text=tbl_content,
-                    text_file_path=convert_path(str(tbl_file)),
-                    page_image_path=convert_path(str(page_image_path))
-                ),
-                summary=None
+            # Use the model's load_from_file method
+            extracted_table = ExtractedTable.load_from_file(
+                tbl_file,
+                page_number,
+                convert_path(str(page_image_path))
             )
             tables_list.append(extracted_table)
 
@@ -530,108 +505,15 @@ class PDFIngestionPipeline:
 
     def _load_post_processing_files(self, document_content: DocumentContent) -> None:
         """
-        Loads any existing post-processing files from the pipeline’s output directory
-        into document_content.post_processing_content. This includes:
-          - text_twin.md
-          - condensed_text.md
-          - table_of_contents.md
-          - document_content.json reference
-          - translations in /translations
+        Loads any existing post-processing files from the pipeline's output directory
+        into document_content.post_processing_content.
         """
-        if not document_content.post_processing_content:
-            document_content.post_processing_content = PostProcessingContent()
-
-        # -----------------
-        # 1) text_twin.md
-        # -----------------
-        text_twin_path = self.output_directory / "text_twin.md"
-        if text_twin_path.is_file():
-            twin_text = text_twin_path.read_text(encoding="utf-8")
-            document_content.full_text = twin_text
-            document_content.post_processing_content.full_text = DataUnit(
-                text=twin_text,
-                text_file_path=str(text_twin_path)
-            )
-
-        # ----------------------
-        # 2) condensed_text.md
-        # ----------------------
-        condensed_path = self.output_directory / "condensed_text.md"
-        if condensed_path.is_file():
-            condensed_text = condensed_path.read_text(encoding="utf-8")
-            document_content.post_processing_content.condensed_text = DataUnit(
-                text=condensed_text,
-                text_file_path=str(condensed_path)
-            )
-
-        # -------------------------
-        # 3) table_of_contents.md
-        # -------------------------
-        toc_path = self.output_directory / "table_of_contents.md"
-        if toc_path.is_file():
-            toc_text = toc_path.read_text(encoding="utf-8")
-            document_content.post_processing_content.table_of_contents = DataUnit(
-                text=toc_text,
-                text_file_path=str(toc_path)
-            )
-
-        # -------------------------
-        # 4) Post-processing steps
-        # -------------------------
-        for step in self.processing_pipeline_config.custom_document_processing_steps:
-            custom_proc_dir = self.output_directory / "custom_processing"
-
-            if step.data_model is None:
-                custom_processed_text_path = custom_proc_dir / f"step_{step.name}.txt"
-            else:
-                custom_processed_text_path = custom_proc_dir /  f"step_{step.name}.json"
-
-            if custom_processed_text_path.is_file():
-                custom_document_processing_text = custom_processed_text_path.read_text(encoding="utf-8")
-                document_content.post_processing_content.custom_document_page_text = DataUnit(
-                    text=custom_document_processing_text,
-                    text_file_path=str(custom_processed_text_path)
-            )
-
-        # ------------------------------------------------
-        # 5) document_content.json (document_json DataUnit)
-        # ------------------------------------------------
-        doc_json_path = self.output_directory / "document_content.json"
-        if doc_json_path.is_file():
-            document_content.post_processing_content.document_json = DataUnit(
-                text="",  # or store the JSON string if you prefer
-                text_file_path=str(doc_json_path)
-            )
-
-        # ------------------------------------
-        # 6) translations in ./translations/
-        # ------------------------------------
-        translations_dir = self.output_directory / "translations"
-        if translations_dir.is_dir():
-            if not document_content.post_processing_content.translated_full_texts:
-                document_content.post_processing_content.translated_full_texts = []
-            if not document_content.post_processing_content.translated_condensed_texts:
-                document_content.post_processing_content.translated_condensed_texts = []
-
-            for file in translations_dir.glob("*.txt"):
-                filename = file.name
-                file_text = file.read_text(encoding="utf-8")
-                # e.g. "full_text_fr.txt" => group(1)="full_text", group(2)="fr"
-                m = re.match(r"^(full_text|condensed_text)_(\w+)\\.txt$", filename)
-                if m:
-                    text_type = m.group(1)  # "full_text" or "condensed_text"
-                    lang = m.group(2)      # e.g. "fr"
-
-                    data_unit = DataUnit(
-                        text=file_text,
-                        language=lang,
-                        text_file_path=str(file)
-                    )
-
-                    if text_type == "full_text":
-                        document_content.post_processing_content.translated_full_texts.append(data_unit)
-                    else:
-                        document_content.post_processing_content.translated_condensed_texts.append(data_unit)
+        # Use the PostProcessingContent's load_from_directory method
+        document_content.post_processing_content = PostProcessingContent.load_from_directory(self.output_directory)
+        
+        # Load full_text into DocumentContent directly if available
+        if document_content.post_processing_content and document_content.post_processing_content.full_text:
+            document_content.full_text = document_content.post_processing_content.full_text.text
 
     # ========================================================================================
     # =============================  5) TRANSLATION METHODS  ==================================
@@ -650,9 +532,15 @@ class PDFIngestionPipeline:
         # Translate
         translated_text = translate_text(text, lang, model_info=self._text_model)
         
-        # Save translated text 
-        translated_text_filename = translate_dir / f"{filename_prefix}_{lang}.txt"
-        write_to_file(translated_text, translated_text_filename, mode="w")
+        # Create DataUnit for the translation
+        translated_text_unit = DataUnit(
+            text=translated_text,
+            language=lang
+        )
+        
+        # Save the translation using the DataUnit model's method
+        filename = f"{filename_prefix}_{lang}.txt"
+        translated_text_unit.save_to_file(translate_dir, filename)
     
         if not document_content.post_processing_content:
             document_content.post_processing_content = PostProcessingContent()
@@ -660,15 +548,11 @@ class PDFIngestionPipeline:
         if not document_content.post_processing_content.translated_full_texts:
             document_content.post_processing_content.translated_full_texts = []
 
-        document_content.post_processing_content.translated_full_texts.append(DataUnit(
-            text=translated_text,
-            language=lang,
-            text_file_path=convert_path(str(translated_text_filename))
-        ))
+        document_content.post_processing_content.translated_full_texts.append(translated_text_unit)
 
     def translate_full_text(self, document_content: DocumentContent):
         """
-        Translates the entire document’s full text into each language specified 
+        Translates the entire document's full text into each language specified 
         in the pipeline configuration. Each translation is saved separately.
         """
         if not self.processing_pipeline_config.translate_full_text:
@@ -679,7 +563,7 @@ class PDFIngestionPipeline:
 
     def translate_condensed_text(self, document_content: DocumentContent):
         """
-        Translates the condensed version of the document’s text (if generated) into 
+        Translates the condensed version of the document's text (if generated) into 
         each language specified in the pipeline configuration. 
         Each translation is saved separately.
         """
@@ -727,17 +611,20 @@ class PDFIngestionPipeline:
         if not document_content: # If not provided, use the one stored in the instance
             document_content = self.document
 
-        twin_path = self.output_directory / "text_twin.md"
-        write_to_file(document_content.full_text or "", twin_path, mode="w")
+        # Create DataUnit for the full text
+        full_text_unit = DataUnit(
+            text=document_content.full_text or ""
+        )
+        
+        # Save the full text using the DataUnit model's method
+        full_text_path = self.output_directory / "text_twin.md"
+        full_text_unit.save_to_file(self.output_directory, "text_twin.md")
 
         if not document_content.post_processing_content:
             document_content.post_processing_content = PostProcessingContent()
 
-        document_content.post_processing_content.full_text = DataUnit(
-            text=document_content.full_text or "",
-            text_file_path=convert_path(str(twin_path))
-        )
-        console.print(f"Document-level text twin saved at: {twin_path}")
+        document_content.post_processing_content.full_text = full_text_unit
+        console.print(f"Document-level text twin saved at: {full_text_path}")
 
     def condense_text(self, document_content: Optional[DocumentContent] = None):
         """
@@ -751,17 +638,19 @@ class PDFIngestionPipeline:
             return
         condensed_text_result = condense_text(document_content.full_text, model_info=self._text_model)
 
-        condensed_path = self.output_directory / "condensed_text.md"
-        write_to_file(condensed_text_result, condensed_path, mode="w")
+        # Create DataUnit for the condensed text
+        condensed_text_unit = DataUnit(
+            text=condensed_text_result
+        )
+        
+        # Save the condensed text using the DataUnit model's method
+        condensed_text_unit.save_to_file(self.output_directory, "condensed_text.md")
 
         if not document_content.post_processing_content:
             document_content.post_processing_content = PostProcessingContent()
 
-        document_content.post_processing_content.condensed_text = DataUnit(
-            text=condensed_text_result,
-            text_file_path=convert_path(str(condensed_path))
-        )
-        console.print(f"Condensed text saved at: {condensed_path}")
+        document_content.post_processing_content.condensed_text = condensed_text_unit
+        console.print(f"Condensed text saved at: {self.output_directory / 'condensed_text.md'}")
 
     def generate_table_of_contents(self, document_content: Optional[DocumentContent] = None):
         """
@@ -777,17 +666,19 @@ class PDFIngestionPipeline:
         toc_text = generate_table_of_contents(document_content.full_text, model_info=self._text_model)
         toc_text = toc_text.replace("```markdown", "").replace("```", "")
 
-        toc_text_path = self.output_directory / "table_of_contents.md"
-        write_to_file(toc_text, toc_text_path, mode="w")
+        # Create DataUnit for the table of contents
+        toc_unit = DataUnit(
+            text=toc_text
+        )
+        
+        # Save the table of contents using the DataUnit model's method
+        toc_unit.save_to_file(self.output_directory, "table_of_contents.md")
 
         if not document_content.post_processing_content:
             document_content.post_processing_content = PostProcessingContent()
 
-        document_content.post_processing_content.table_of_contents = DataUnit(
-            text=toc_text,
-            text_file_path=convert_path(str(toc_text_path))
-        )
-        console.print(f"Table of contents saved at: {toc_text_path}")
+        document_content.post_processing_content.table_of_contents = toc_unit
+        console.print(f"Table of contents saved at: {self.output_directory / 'table_of_contents.md'}")
 
 
     def apply_custom_document_processing(self, document_content: Optional[DocumentContent] = None):
@@ -807,27 +698,28 @@ class PDFIngestionPipeline:
 
         for step in self.processing_pipeline_config.custom_document_processing_steps:
             if step.data_model is None:
-                custom_processed_text_path = custom_proc_dir / f"document_step_{step.name}.txt"
+                filename = f"document_step_{step.name}.txt"
             else:
-                custom_processed_text_path = custom_proc_dir /  f"document_step_{step.name}.json"
+                filename = f"document_step_{step.name}.json"
             
-            # Custom page processing
+            # Custom document processing
             custom_processed_text = apply_custom_document_processing_prompt(document_text=document_content.full_text,
                                                                             custom_document_processing_prompt=step.prompt,
                                                                             response_format=step.data_model,
                                                                             model_info=step.ai_model
                                                                         )
             
-            write_to_file(custom_processed_text, custom_processed_text_path, mode="w")
-            console.print(f"Custom Document Processing saved at: {custom_processed_text_path}")
+            # Create DataUnit and save it using the model's method
+            data_unit = DataUnit(
+                text=custom_processed_text
+            )
+            data_unit.save_to_file(custom_proc_dir, filename)
+            console.print(f"Custom Document Processing saved at: {custom_proc_dir / filename}")
 
             if not document_content.post_processing_content:
                 document_content.post_processing_content = PostProcessingContent()
             
-            data_units.append(DataUnit(
-                text=custom_processed_text,
-                text_file_path=convert_path(str(custom_processed_text_path))
-            ))
+            data_units.append(data_unit)
 
         document_content.post_processing_content.custom_document_processing_steps = data_units 
         
@@ -841,19 +733,19 @@ class PDFIngestionPipeline:
         if not document_content: # If not provided, use the one stored in the instance
             document_content = self.document
 
-        doc_json_path = self.output_directory / "document_content.json"
-    
+        # Use the DocumentContent model's save_to_json method
+        json_path = document_content.save_to_json(self.output_directory / "document_content.json")
+        
+        # Ensure document_json is set in post_processing_content
         if not document_content.post_processing_content:
             document_content.post_processing_content = PostProcessingContent()
-
+            
         document_content.post_processing_content.document_json = DataUnit(
-            text="",  # If you prefer to store the actual JSON string, you can do so
-            text_file_path=convert_path(str(doc_json_path))
+            text="",  # We don't store the actual content
+            text_file_path=json_path
         )
-
-        document_dict = document_content.dict()
-        write_json_file(document_dict, doc_json_path)
-        console.print(f"DocumentContent JSON saved at: {doc_json_path}")
+        
+        console.print(f"DocumentContent JSON saved at: {json_path}")
 
     # ========================================================================================
     # =========================  7) PAGE PROCESSING ORCHESTRATION  ===========================
@@ -906,13 +798,19 @@ class PDFIngestionPipeline:
             page_number, extracted_text, page_image_path, images, tables
         )
 
-        # Save combined text as page_{page_number}_twin.txt
+        # Prepare page directory
         page_dir = self.output_directory / "pages" / f"page_{page_number}"
         page_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get the combined page text DataUnit
         page_text_filename = page_dir / f"page_{page_number}_twin.txt"
-        write_to_file(combined_str, page_text_filename, mode="w")
+        page_text = DataUnit(
+            text=combined_str,
+            text_file_path=convert_path(str(page_text_filename)),
+            page_image_path=convert_path(page_image_path)
+        )
 
-        # 6) Custom Document Processing
+        # 6) Custom Page Processing
         page_processing_steps = self.apply_page_processing_steps(combined_str, page_number, page_dir, page_image_path)
 
         # 7) Create the PageContent object
@@ -922,12 +820,8 @@ class PDFIngestionPipeline:
             page_image_path=convert_path(page_image_path),
             images=images,
             tables=tables,
-            page_text=DataUnit(
-                text=combined_str,
-                text_file_path=convert_path(str(page_text_filename)),
-                page_image_path=convert_path(page_image_path)
-            ),
-            custom_page_processing_steps = page_processing_steps
+            page_text=page_text,
+            custom_page_processing_steps=page_processing_steps
         )
 
         return page_content
@@ -939,7 +833,7 @@ class PDFIngestionPipeline:
           - Combines and saves results
           - Updates pipeline state so we can resume if interrupted
         Then runs post-processing (condensing, table of contents, translations) 
-        unless they’ve already been done, and saves a final JSON representation 
+        unless they've already been done, and saves a final JSON representation 
         of the entire DocumentContent.
         
         Returns the DocumentContent object representing the fully processed PDF.
@@ -998,7 +892,6 @@ class PDFIngestionPipeline:
         """
         Loads a DocumentContent instance by reading the JSON file in the root folder:
           {folder_path}/document_content.json
-        If a text_twin.md file is found, it also populates the full_text field.
         
         Recommended for consistent re-loading of previously processed results.
         """
@@ -1010,15 +903,8 @@ class PDFIngestionPipeline:
                 f"Could not find the JSON file containing DocumentContent at {doc_json_path}"
             )
 
-        document_dict = read_json_file(doc_json_path)
-        doc_content = DocumentContent(**document_dict)
-
-        # If there's a text_twin.md, read it into doc_content.full_text
-        twin_path = folder_path / "text_twin.md"
-        if twin_path.is_file():
-            doc_content.full_text = twin_path.read_text(encoding="utf-8")
-
-        return doc_content
+        # Use the DocumentContent model's load_from_json method
+        return DocumentContent.load_from_json(doc_json_path)
 
     ## IMPORTANT
     ## DO NOT USE THIS FUNCTION UNLESS IT IS A LAST RESORT
@@ -1027,121 +913,8 @@ class PDFIngestionPipeline:
     @staticmethod
     def load_document_content_from_folder(folder_path: Union[str, Path]) -> DocumentContent:
         """
-        Rebuilds DocumentContent purely by scanning the directory structure:
-          {folder_path}/pages/page_{n}/ ...
-        This method re-assembles text, images, tables, and the final combined text 
-        for each page, and attempts to guess total pages, etc.
-
+        Rebuilds DocumentContent purely by scanning the directory structure.
         Not recommended if a JSON file was saved. Use load_document_content_from_json instead.
         """
-        folder_path = Path(folder_path)
-        pages_dir = folder_path / "pages"
-
-        # Attempt to reconstruct PDFMetadata from partial info
-        document_id = folder_path.name
-        pdf_fake_path = folder_path / f"{document_id}.pdf"
-        page_numbers = []
-        for child in pages_dir.iterdir():
-            if child.is_dir() and child.name.startswith("page_"):
-                match = re.search(r"page_(\d+)$", child.name)
-                if match:
-                    page_numbers.append(int(match.group(1)))
-        page_numbers.sort()
-
-        metadata = PDFMetadata(
-            document_id=document_id,
-            document_path=convert_path(str(pdf_fake_path)),
-            filename=convert_path(pdf_fake_path.name),
-            total_pages=len(page_numbers),
-            output_directory=convert_path(str(folder_path))
-        )
-
-        full_text_path = folder_path / "text_twin.md"
-        full_text = None
-        if full_text_path.is_file():
-            full_text = full_text_path.read_text(encoding="utf-8")
-
-        pages: List[PageContent] = []
-        for page_num in page_numbers:
-            page_subdir = pages_dir / f"page_{page_num}"
-            main_img = page_subdir / f"page_{page_num}.png"
-            if not main_img.is_file():
-                # Maybe it was saved as jpg
-                alt_img = page_subdir / f"page_{page_num}.jpg"
-                if alt_img.is_file():
-                    main_img = alt_img
-
-            extracted_text_file = page_subdir / f"page_{page_num}.txt"
-            extracted_text_str = ""
-            if extracted_text_file.is_file():
-                extracted_text_str = extracted_text_file.read_text(encoding="utf-8")
-
-            extracted_text = ExtractedText(
-                page_number=page_num,
-                text=DataUnit(
-                    text=extracted_text_str,
-                    text_file_path=convert_path(str(extracted_text_file)) if extracted_text_file.is_file() else None,
-                    page_image_path=convert_path(str(main_img)) if main_img.is_file() else None
-                )
-            )
-
-            combined_file = page_subdir / f"page_{page_num}_twin.txt"
-            combined_text_str = ""
-            if combined_file.is_file():
-                combined_text_str = combined_file.read_text(encoding="utf-8")
-
-            images_dir = page_subdir / "images"
-            images_list: List[ExtractedImage] = []
-            if images_dir.is_dir():
-                for img_text_file in images_dir.glob("page_{}_image_*.txt".format(page_num)):
-                    text_for_img = img_text_file.read_text(encoding="utf-8")
-                    ex_img = ExtractedImage(
-                        page_number=page_num,
-                        image_path=convert_path(str(main_img)) if main_img.is_file() else "",
-                        image_type="unknown",
-                        text=DataUnit(
-                            text=text_for_img,
-                            text_file_path=convert_path(str(img_text_file)),
-                            page_image_path=convert_path(str(main_img)) if main_img.is_file() else None
-                        )
-                    )
-                    images_list.append(ex_img)
-
-            tables_dir = page_subdir / "tables"
-            tables_list: List[ExtractedTable] = []
-            if tables_dir.is_dir():
-                for tbl_file in tables_dir.glob("page_{}_table_*.txt".format(page_num)):
-                    tbl_content = tbl_file.read_text(encoding="utf-8")
-                    ex_tbl = ExtractedTable(
-                        page_number=page_num,
-                        text=DataUnit(
-                            text=tbl_content,
-                            text_file_path=convert_path(str(tbl_file)),
-                            page_image_path=convert_path(str(main_img)) if main_img.is_file() else None
-                        ),
-                        summary=None
-                    )
-                    tables_list.append(ex_tbl)
-
-            page_content = PageContent(
-                page_number=page_num,
-                text=extracted_text,
-                page_image_path=convert_path(str(main_img)) if main_img.is_file() else "",
-                images=images_list,
-                tables=tables_list,
-                page_text=DataUnit(
-                    text=combined_text_str,
-                    text_file_path=convert_path(str(combined_file)) if combined_file.is_file() else None,
-                    page_image_path=convert_path(str(main_img)) if main_img.is_file() else None
-                ) if combined_text_str else None
-            )
-
-            pages.append(page_content)
-
-        doc_content = DocumentContent(
-            metadata=metadata,
-            pages=pages,
-            full_text=full_text
-        )
-
-        return doc_content
+        # Use the DocumentContent model's load_from_directory method 
+        return DocumentContent.load_from_directory(folder_path)
