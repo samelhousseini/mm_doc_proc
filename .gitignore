@@ -185,7 +185,7 @@ env_vars.py
 
 old_*.*
 downloaded_files/
-
+test/
 .vscode/
 
 bicep/

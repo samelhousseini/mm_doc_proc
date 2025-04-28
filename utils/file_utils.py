@@ -182,6 +182,22 @@ def read_asset_file(text_filename):
 
     return text, status
 
+
+def read_file(text_filename):
+    try:
+        print(f"Reading file from path: {os.path.abspath(text_filename)}")
+        if isinstance(text_filename, str): text_filename = text_filename.replace("\\", "/")
+        with open(text_filename, 'r', encoding='utf-8') as file:
+            text = file.read()
+        status = True
+    except Exception as e:
+        text = ""
+        print(f"WARNING ONLY - reading text file: {e}")
+        status = False
+
+    return text
+
+
 def find_certain_files(directory, extension = '.xlsx'):
     xlsx_files = []
     for root, dirs, files in os.walk(directory):

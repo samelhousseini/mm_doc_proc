@@ -98,8 +98,22 @@ class EmbeddedImage(BaseModel):
     visual_description: str
     contextual_relevance: str
     analysis: str
-    visual_type: Literal["graph", "photo", "infographic", "generic"]
-
+    visual_type: Literal[
+            "graph", 
+            "photo", 
+            "infographic", 
+            "generic",                          
+            "hardware layout",
+            "installation diagram",
+            "signal flow",
+            "network topology",
+            "tool usage",
+            "warning sign",
+            "safety icon",
+            "device front/back panel",
+            "UI screen",
+            "photo reference"
+    ]
 
 
 class EmbeddedImages(BaseModel):

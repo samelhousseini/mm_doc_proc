@@ -31,8 +31,6 @@ fastapi>=0.103.1
 uvicorn>=0.23.2
 json-repair
 rich
-numpy
-pandas
 pymupdf
 tiktoken
 pytest
@@ -47,3 +45,4 @@ urllib3
 msal
 msal-extensions
 yarl
+json_repair

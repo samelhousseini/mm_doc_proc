@@ -1,0 +1,85 @@
+{
+    "analyzerId": "manuals_analyzer_new",
+    "description": "Extract detailed structured information from text and embedded images in technical manuals.",
+    "createdAt": "2025-04-23T14:35:43Z",
+    "lastModifiedAt": "2025-04-23T14:35:43Z",
+    "config": {
+      "returnDetails": false,
+      "disableContentFiltering": false
+    },
+    "fieldSchema": {
+      "name": "ManualFields",
+      "description": "Structured fields for parsing technical manuals with figures, diagrams, and structured content.",
+      "fields": {
+        "PageSectionTitle": {
+          "type": "string",
+          "method": "generate",
+          "description": "The title of the specific section on this page. Any headers or subheaders on the page that are not part of a paragraph."
+        },
+        "BodyText": {
+          "type": "string",
+          "method": "generate",
+          "description": "All non-figure, non-table narrative text (paragraphs) on this page."
+        },
+        "Summary": {
+          "type": "string",
+          "method": "generate",
+          "description": "Detailed but concise summary of page content, including highlights and take-aways from both text and figures."
+        },
+        "PageKeywords": {
+          "type": "string",
+          "method": "generate",
+          "description": "Key technical terms and topics extracted from the page."
+        },
+        "FigureIds": {
+          "type": "string",
+          "method": "generate",
+          "description": "Identifiers of each embedded figure (e.g. “Figure 1”, “Figure 5-44”)."
+        },
+        "FigureCaptions": {
+          "type": "string",
+          "method": "generate",
+          "description": "Full caption text appearing under or alongside each figure."
+        },
+        "FigureType": {
+          "type": "string",
+          "method": "classify",
+          "description": "The type of figure: e.g. \"photo\", \"graph\", \"infographic\", \"generic\", \"hardware layout\", \"installation diagram\", \"signal flow\", \"network topology\", \"safety icon\", etc.",
+          "enum": [
+            "photo",
+            "graph",
+            "infographic",
+            "generic",
+            "hardware layout",
+            "installation diagram",
+            "signal flow",
+            "network topology",
+            "tool usage",
+            "warning sign",
+            "safety icon",
+            "device front/back panel",
+            "UI screen",
+            "photo reference"
+          ]
+        },
+        "FigureDescriptions": {
+          "type": "string",
+          "method": "generate",
+          "description": "LLM-generated detailed explanation of what each figure shows. Must describe every relevant visual element."
+        },
+        "FigureAnalyses": {
+          "type": "string",
+          "method": "generate",
+          "description": "Contextual relevance or insights derived from each figure (e.g., what troubleshooting step it supports or safety risk it highlights)."
+        },
+        "ImportantWarnings": {
+          "type": "string",
+          "method": "generate",
+          "description": "Any safety icons or warning call-outs in or near the figure, verbatim."
+        }
+      }
+    },
+    "warnings": [],
+    "status": "ready",
+    "scenario": "image"
+  }

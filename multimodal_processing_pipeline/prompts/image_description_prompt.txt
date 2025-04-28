@@ -2,8 +2,8 @@
 The file you receive is a **screenshot** of an entire PDF page. That page **may** contain text, headings, paragraphs, tables, and other visual elements. For this task:
 
 1. **Do NOT** summarize or describe the entire PDF page layout or text.  
-2. **Focus EXCLUSIVELY** on any **embedded photographs**, **embedded graphs**, **infographics**, or **generic** visuals within that page screenshot.  
-3. If there are **no** embedded photographs, graphs, infographics, or generic visuals, you **MUST** return an **empty** array (`"detected_visuals": []`) in the final JSON.
+2. **Focus EXCLUSIVELY** on any **embedded photographs**, **embedded graphs**, **infographics**, **technical diagrams**, or other **visual elements** within that page screenshot.  
+3. If there are **no** embedded visuals, you **MUST** return an **empty** array (`"detected_visuals": []`) in the final JSON.
 
 ---
 
@@ -38,15 +38,37 @@ The file you receive is a **screenshot** of an entire PDF page. That page **may*
   - **Overall Layout**: How elements (icons, text callouts, mini-graphs) are arranged. 
   - **Description of the Infographic**: Describe in details what the infographic is illustrating, whether these are process steps, workflows, instructions, schematics, or other types of infographic. Convert this infographic into a text manual detailing all instructions and relationships, assume that the user is not able to see the infographic, and you are describing it to them without missing any detail. Assume every detail is crucial, and that the user will be able to reconstruct the infographic from this explanation only without seeing the original infographic.
   - **Data or Statistics**: If present, note any prominent figures, percentages, or key statements.  
-  - **Visual Elements**: Icons, color schemes, thematic images, labels, and how they guide the viewer’s understanding.  
+  - **Visual Elements**: Icons, color schemes, thematic images, labels, and how they guide the viewer's understanding.  
   - **Possible Purpose**: Summarize complex information in a visually engaging manner, highlight a process flow with icons and text, compare multiple data points in a single eye-catching design, etc.
 
 ---
 
-### **D. Identifying and Describing Generic Visualizations**
+### **D. Identifying and Describing Technical Diagrams and Specialized Visuals**
 
-- **Definition**: A **generic** visualization is **any other type of embedded visual** that does **not** fit neatly into the **photo**, **graph**, or **infographic** categories. These could include:  
+- **Definition**: Technical diagrams and specialized visuals include precise representations of equipment, systems, or procedures that require detailed interpretation. These include:
+  - **Hardware layout**: Detailed views of equipment components, physical configurations, circuit boards, etc.
+  - **Installation diagram**: Visual instructions for assembling, mounting, or connecting equipment.
+  - **Signal flow**: Diagrams showing how signals or data travel through a system or device.
+  - **Network topology**: Illustrations of how network devices are connected and interrelated.
+  - **Tool usage**: Visual guides showing the proper use of tools or equipment.
+  - **Warning sign/Safety icon**: Hazard notifications, safety symbols, or cautionary graphics.
+  - **Device front/back panel**: Visual depiction of equipment interfaces, ports, buttons, or controls.
+  - **UI screen**: Screenshots of software interfaces, control panels, or menu systems.
+
+- **What to Include**:
+  - **Type and Purpose**: Identify the specific type of diagram and its apparent purpose in the document.
+  - **Components and Layout**: Describe key components, their arrangement, connections between elements, labels, and annotations.
+  - **Technical Details**: Note model numbers, specifications, measurements, or other technical information visible in the diagram.
+  - **Instructions or Procedures**: Detail any step sequences, caution notices, or procedural information presented.
+  - **Detailed Description**: Provide a thorough description assuming the user cannot see the diagram themselves, including all labels, connections, and important visual elements that would allow reconstruction of the diagram.
+
+---
+
+### **E. Identifying and Describing Generic Visualizations**
+
+- **Definition**: A **generic** visualization is **any other type of embedded visual** that does **not** fit neatly into the other categories. These could include:  
   - **Illustrations**, **drawings**, **diagrams** (with minimal data focus), **icons** or **symbolic visuals** that convey ideas but are not strictly data-driven charts, photos, or fully-fledged infographics.
+  - **Photo reference**: Reference images used to illustrate a concept but that aren't technical diagrams or standard photographs.
 - **What to Include**:
   - **Overall Appearance**: Describe the visual style (e.g., cartoonish, minimalist, schematic) and its key elements or shapes.
   - **Description of the Visualization**: Describe in details the visualization and all information that it includes. Assume that the user is not able to see the visualization, and you are describing it to them without missing any detail. Assume every detail is crucial, and that the user will be able to reconstruct the visualization from this explanation only without seeing the original visualization.
@@ -55,23 +77,23 @@ The file you receive is a **screenshot** of an entire PDF page. That page **may*
 
 ---
 
-### **E. Output Format Requirements**
+### **F. Output Format Requirements**
 
 Your final output **MUST** be **one** JSON object with a single key:  
 
 {{
   "detected_visuals": [
     {{
-      "visual_description": "A detailed explanation of the photograph, graph, infographic, or generic visual.",
+      "visual_description": "A detailed explanation of the visual.",
       "contextual_relevance": "Explains how this visual might be relevant to the rest of the page.",
       "analysis": "Analysis of the visual itself, with the page as context.",
-      "visual_type": "photo | graph | infographic | generic"
+      "visual_type": "photo | graph | infographic | generic | hardware layout | installation diagram | signal flow | network topology | tool usage | warning sign | safety icon | device front/back panel | UI screen | photo reference"
     }},
     {{
       "visual_description": "...",
       "contextual_relevance": "...",
       "analysis": "...",
-      "visual_type": "photo | graph | infographic | generic"
+      "visual_type": "photo | graph | infographic | generic | hardware layout | installation diagram | signal flow | network topology | tool usage | warning sign | safety icon | device front/back panel | UI screen | photo reference"
     }},
     ...
   ]
@@ -81,11 +103,25 @@ Your final output **MUST** be **one** JSON object with a single key:
 - **`"detected_visuals"`** is a **list**.  
 - Each element in the list is an **object** with **four** keys:
   1. **`"visual_description"`**: A thorough description of the visual.  
-  2. **`"contextual_relevance"`**: Short note on how/why it ties into the document’s theme or content.  
+  2. **`"contextual_relevance"`**: Short note on how/why it ties into the document's theme or content.  
   3. **`"analysis"`**: Any deeper commentary, patterns, or interpretive notes.  
-  4. **`"visual_type"`**: Must be **`"photo"`, `"graph"`, `"infographic"`, or `"generic"`**.
+  4. **`"visual_type"`**: Must be one of the following:
+     - **`"photo"`**: Natural photographs
+     - **`"graph"`**: Data visualizations and charts
+     - **`"infographic"`**: Informational graphics combining text and visual elements
+     - **`"hardware layout"`**: Component arrangements or equipment layouts
+     - **`"installation diagram"`**: Assembly or installation instructions
+     - **`"signal flow"`**: Signal or data pathway representations
+     - **`"network topology"`**: Network connection diagrams
+     - **`"tool usage"`**: Demonstrations of tool implementations
+     - **`"warning sign"`**: Hazard warnings or alerts
+     - **`"safety icon"`**: Safety-related symbols
+     - **`"device front/back panel"`**: Equipment interface views
+     - **`"UI screen"`**: Software or device interface screenshots
+     - **`"photo reference"`**: Reference imagery
+     - **`"generic"`**: Other visual elements not fitting the above categories
 
-If **no** embedded photographs, graphs, infographics, or generic visuals exist in the screenshot, output:
+If **no** embedded visuals exist in the screenshot, output:
 
 {{
   "detected_visuals": []
@@ -94,59 +130,53 @@ If **no** embedded photographs, graphs, infographics, or generic visuals exist i
 
 ---
 
-### **F. Additional Instructions**
+### **G. Additional Instructions**
 
 1. **Ignore All Page Text**  
    - We do **not** want a text summary or interpretation of the PDF page.  
-   - Describe **only** the identified photographs, graphs, infographics, or generic visuals.
+   - Describe **only** the identified visuals within the page screenshot.
 
 2. **Be Thorough and Factual**  
-   - For **photographs**: note key details like color, setting, visible subjects or objects.  
+   - For **photographs and photo references**: note key details like color, setting, visible subjects or objects.  
    - For **graphs**: note axes labels, data points, color usage, notable data patterns, numeric values (if visible).  
    - For **infographics**: note the integrated visuals, icons, short textual elements, layout, and overall design approach.  
-   - For **generic**: note any stylized drawings or visuals that don’t fall under the other categories.
+   - For **technical diagrams**: note specific components, connections, labels, and procedural information.
+   - For **generic**: note any stylized drawings or visuals that don't fall under the other categories.
 
 3. **No Overarching Page Summaries**  
    - Avoid describing textual paragraphs, headings, or overall page layout.  
-   - Keep descriptions strictly about the photo, graph, infographic, or generic visualization content.
+   - Keep descriptions strictly about the visual content.
 
 4. **Completeness**  
    - If multiple visuals exist, **describe each** as a separate element in the array.  
    - If none exist, return the empty array.
 
 5. **Analysis vs Contextual Relevance**  
-   - **`contextual_relevance`**: Briefly indicate how or why the visual might tie into the document’s content.  
-   - **`analysis`**: Additional insights or commentary on the data, scene, or significant details (e.g., outlier values, unique setting, potential symbolic meaning, etc.).
+   - **`contextual_relevance`**: Briefly indicate how or why the visual might tie into the document's content.  
+   - **`analysis`**: Additional insights or commentary on the data, scene, or significant details (e.g., outlier values, unique setting, potential symbolic meaning, technical implications, etc.).
 
 ---
 
-## **G. Few-Shot Examples (Existing)**
+## **H. Examples (Existing and New)**
 
-Below you will find **all nine examples** revised with more **elaborate and descriptive** text, reflecting the requirement that each description should be sufficiently detailed for a user to **reconstruct** the visual in question. 
+Below you will find examples with elaborate and descriptive text, reflecting the requirement that each description should be sufficiently detailed for a user to **reconstruct** the visual in question. 
 
 ---
 
-## **Example 1: No Embedded Visuals**
-
+### **Example: No Embedded Visuals**
 
 {{
   "detected_visuals": []
 }}
 
-
-**Explanation (not part of output)**  
-- This screenshot contains no visuals beyond text, or nothing that qualifies as a photo, graph, infographic, or generic.  
-- Hence, the list is empty.
-
 ---
 
-## **Example 2: One Photograph, No Graphs**
-
+### **Example: A Photograph**
 
 {{
   "detected_visuals": [
     {{
-      "visual_description": "This is a photograph capturing the interior of a small, cozy café. The seating area includes roughly five wooden tables spaced evenly in a single row. Each table is rectangular, seats up to four people, and has a small potted plant in the center. The walls are painted in a warm beige tone, which complements the dark-brown wooden furniture. Large windows on one side allow abundant natural light to filter in, illuminating the space and creating a welcoming ambiance. At the back of the café, a chalkboard menu can be seen mounted on the wall, listing various beverages and snacks in white handwritten text. The floor is tiled in a light shade, possibly a cream or tan color, and a soft glow from overhead lighting fixtures adds to the cozy atmosphere. No patrons are visible in the shot, emphasizing the café’s setup rather than customer presence.",
+      "visual_description": "This is a photograph capturing the interior of a small, cozy café. The seating area includes roughly five wooden tables spaced evenly in a single row. Each table is rectangular, seats up to four people, and has a small potted plant in the center. The walls are painted in a warm beige tone, which complements the dark-brown wooden furniture. Large windows on one side allow abundant natural light to filter in, illuminating the space and creating a welcoming ambiance. At the back of the café, a chalkboard menu can be seen mounted on the wall, listing various beverages and snacks in white handwritten text. The floor is tiled in a light shade, possibly a cream or tan color, and a soft glow from overhead lighting fixtures adds to the cozy atmosphere. No patrons are visible in the shot, emphasizing the café's setup rather than customer presence.",
       "contextual_relevance": "It may have been included to illustrate a casual environment or gathering space referenced in the document, perhaps suggesting where meetings or informal discussions could occur.",
       "analysis": "The photograph highlights a comfortable, relaxed setting with neutral tones and understated décor. The presence of natural light, simple furnishings, and a chalkboard menu suggests an inviting neighborhood café atmosphere. This setting can indicate themes of approachability, community, or informal collaboration within the document.",
       "visual_type": "photo"
@@ -154,10 +184,159 @@ Below you will find **all nine examples** revised with more **elaborate and desc
   ]
 }}
 
+---
+
+### **Example: A Graph**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A bar chart designed to compare sales figures for three product categories—Electronics, Furniture, and Grocery—across two quarters (Q1 and Q2). On the x-axis, you have two grouped sections, one labeled 'Q1' and the other labeled 'Q2'. Within each group on the x-axis, there are three bars side-by-side, each corresponding to one of the product categories. The y-axis is labeled 'Sales in Thousands USD', ranging in increments of 5 from 0 up to 30 or 35. In Q1, Electronics is represented by a blue bar that reaches up to 15 on the y-axis, Furniture by a green bar at 10, and Grocery by an orange bar at 8. In Q2, the Electronics bar (blue) extends to 25, the Furniture bar (green) to 15, and the Grocery bar (orange) to 10. A small legend in the upper-right corner indicates the color-coding: blue for Electronics, green for Furniture, orange for Grocery. The chart has a title at the top, 'Quarterly Sales Comparison', in bold. Minor grid lines run horizontally behind the bars, aiding in reading approximate values. The design is clean with minimal text, focusing on the difference between Q1 and Q2 sales for each category.",
+      "contextual_relevance": "This chart is presumably featured to illustrate quarter-over-quarter performance differences in various product segments, which might be part of a larger sales or financial analysis in the document.",
+      "analysis": "The visible jump in Electronics from 15 to 25 thousand USD is significant, indicating strong demand or marketing focus. Furniture shows moderate growth, while Grocery has a smaller increase. This suggests that Electronics drives the most notable revenue change, possibly justifying strategic shifts or emphasis in the broader context.",
+      "visual_type": "graph"
+    }}
+  ]
+}}
 
 ---
 
-## **Example 3: One Graph, No Photographs**
+### **Example: Hardware Layout**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A detailed top-down view of a circuit board layout for a wireless sensor module. The rectangular PCB (approximately 3 × 2 inches) has a green substrate with gold-colored copper traces visible throughout. In the upper left corner sits a square microcontroller chip (labeled 'MCU-458') with multiple pins extending outward to various components. The right side features a prominent wireless transceiver module with a small zigzag antenna trace extending to the edge of the board. Four mounting holes appear at each corner, surrounded by copper pads. The board contains approximately 12 smaller surface-mount components including resistors (marked with 'R' followed by numbers), capacitors (marked with 'C' followed by numbers), and a crystal oscillator near the microcontroller. A 6-pin header connector is located on the bottom edge, labeled 'PROG' for programming interface. A small battery connector appears on the upper edge, labeled 'BAT+/-'. All components are labeled with white silkscreen identifiers, and a QR code appears in the lower right corner of the board, likely linking to documentation. A version number 'v2.1' and the text 'SensorNode' are printed in white on the bottom left corner of the PCB.",
+      "contextual_relevance": "This hardware layout visual illustrates the specific component arrangement for the wireless sensor module being discussed in the technical documentation, providing readers with precise component locations and interconnections.",
+      "analysis": "The circuit board demonstrates an efficient design with carefully placed components to minimize interference between the digital (microcontroller) and RF (wireless) sections. The provision of programming headers suggests this is designed for development or field configurability. The compact form factor and battery connection indicate it's intended for portable or remote deployment applications, aligning with IoT or environmental monitoring scenarios likely described elsewhere in the document.",
+      "visual_type": "hardware layout"
+    }}
+  ]
+}}
+
+---
+
+### **Example: Installation Diagram**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A step-by-step installation diagram for wall-mounting a network access point. The diagram consists of four sequential panels arranged vertically, each with a numbered step (1-4). Step 1 shows a hand holding a mounting bracket against a wall, with a pencil marking drill locations through the two circular holes in the bracket. Step 2 depicts an electric drill creating holes at the marked positions, with a close-up inset showing the recommended 6mm drill bit to be used. Step 3 illustrates inserting white plastic wall anchors into the drilled holes, with arrows indicating the pushing motion. Step 4 shows the mounting bracket being secured to the wall using two Phillips-head screws, with a screwdriver tightening them. Below the main sequence is a fifth panel demonstrating how the network device slides downward onto the mounted bracket, with dotted lines indicating the movement path and a green checkmark when properly seated. Each step contains minimal text labels identifying key components ('Bracket', 'Wall anchor', 'Screw', etc.). A warning symbol appears in the corner of the drilling image with text stating 'Verify no electrical wires are behind drilling location'. The entire diagram has a white background with black line drawings and occasional highlighted elements in blue (the device itself) and red (the warning symbol).",
+      "contextual_relevance": "The installation diagram directly supports the network equipment setup section of the document, providing visual guidance to complement written installation instructions for proper wall-mounting of the access point.",
+      "analysis": "The diagram effectively simplifies a technical installation process into distinct, manageable steps with minimal text dependency, making it accessible to individuals with varied technical expertise. The inclusion of the safety warning about electrical wires demonstrates attention to installation risks. The sequential panel layout naturally guides the viewer from preparation through completion, with the alignment indicators in the final step helping prevent improper mounting that could damage the equipment or create an unstable installation.",
+      "visual_type": "installation diagram"
+    }}
+  ]
+}}
+
+---
+
+### **Example: Signal Flow**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A signal flow diagram depicting audio processing in a digital mixing console. The diagram flows left to right, beginning with three input sources at the left edge: a microphone (labeled 'MIC IN'), a line input ('LINE IN'), and a digital input ('DIGITAL IN'). Each input has its own vertical signal path with arrows indicating flow direction. The microphone path shows a preamp block (labeled 'PRE'), followed by an analog-to-digital converter ('A/D'). The line input passes through only an A/D converter. These two paths, along with the already-digital input, merge into a block labeled 'INPUT BUFFER'. From there, the signal passes through multiple processing blocks arranged in sequence: 'HPF' (High-Pass Filter), 'GATE' (Noise Gate), 'COMP' (Compressor), 'EQ' (4-band Equalizer), and 'DELAY'. Each block has a small bypass path shown above it with a switch symbol. After these processors, the signal splits into multiple paths labeled 'AUX 1-8', 'FX 1-4', and 'MAIN MIX', all flowing through level control modules (depicted as small fader icons). The bottom of the diagram includes a horizontal 'MONITOR' path that taps signals from multiple points in the chain. All blocks are connected by solid lines with directional arrows, and dashed lines indicate control signal paths that connect to a central 'DSP CORE' block in the center of the diagram. The processing blocks are color-coded: blue for input stages, green for dynamics processors, yellow for equalization, and orange for output routing. Technical specifications appear in small text beside some blocks (e.g., '20Hz-20kHz' beside the EQ block, '0-300ms' beside the DELAY block).",
+      "contextual_relevance": "This signal flow diagram illustrates the precise audio processing path referenced in the technical documentation, helping sound engineers understand the internal routing and processing order within the digital mixing system being described.",
+      "analysis": "The diagram reveals a typical modern digital mixer architecture with parallel processing capabilities. The multiple auxiliary sends and effects buses indicate this is likely a mid-range or professional system designed for live sound or studio applications. The prominent placement of dynamics processing (gate and compressor) before equalization follows industry-standard signal flow practices. The inclusion of both physical input conditioning (preamps, A/D conversion) and digital processing in one unified diagram effectively conveys the hybrid nature of contemporary audio equipment, emphasizing how analog signals are captured and then manipulated entirely in the digital domain before potentially being converted back for output.",
+      "visual_type": "signal flow"
+    }}
+  ]
+}}
+
+---
+
+### **Example: Device Front Panel**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A detailed front panel view of a rack-mountable audio processor. The rectangular unit (standard 19-inch rack width, 2U height) has a black anodized aluminum face with silver/white labeling. The left side features a blue backlit LCD display (approximately 3×2 inches) showing parameter values and menu options. To the right of the display are six rubber push buttons arranged in two rows of three, labeled 'MENU', 'PRESET', 'BYPASS', 'EDIT', 'STORE', and 'RECALL'. A large rotary encoder knob with a textured edge is positioned to the right of these buttons, with 'PARAMETER ADJUST' printed beneath it. The far right portion contains two input level meters comprised of 12 LEDs each, ranging from green (-24dB to -6dB) to yellow (-3dB to 0dB) to red (+3dB to +12dB). Below each meter are input gain knobs labeled 'CHANNEL 1' and 'CHANNEL 2'. A power button with an integrated blue LED is located at the far right edge. Two headphone jacks (1/4-inch) are positioned at the bottom left corner with a small volume control knob. The model name 'ULTRAFEX PRO-2500' appears in silver lettering at the top left, with smaller text reading 'PROFESSIONAL AUDIO ENHANCER' below it. The unit has rounded corners and four visible mounting holes, one near each corner of the front panel.",
+      "contextual_relevance": "This detailed front panel view helps users identify key controls and interfaces referenced in the operation manual, providing visual orientation for the audio processor discussed in the document.",
+      "analysis": "The front panel design emphasizes user interaction with a logical control flow from left to right: system navigation (display and menu buttons), parameter adjustment (encoder knob), and signal monitoring (meters). The prominent display and comprehensive metering suggest this is a precision audio device targeting professional users. The inclusion of preset functionality and dedicated bypass button indicates it's designed for comparative listening and storing user configurations, essential features in professional audio environments. The dual-channel design with individual input controls confirms this unit processes stereo signals, likely for mastering or other critical audio applications.",
+      "visual_type": "device front/back panel"
+    }}
+  ]
+}}
+
+---
+
+### **Example: Network Topology**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A network topology diagram showing a campus-wide network infrastructure. The diagram is organized in a hierarchical layout with three distinct layers. At the top (core layer) are two large switches represented as rectangular boxes labeled 'CORE-SW-1' and 'CORE-SW-2', connected to each other with a thick line indicating redundant 40Gbps links (labeled with '40G'). The middle layer (distribution layer) contains four switches arranged in pairs, labeled 'DIST-SW-A1', 'DIST-SW-A2', 'DIST-SW-B1', and 'DIST-SW-B2'. Each distribution switch connects to both core switches with 10Gbps uplinks (thin lines labeled '10G'). The bottom layer (access layer) shows 12 smaller switches arranged in groups corresponding to different buildings ('Bldg 1', 'Bldg 2', 'Bldg 3', and 'Bldg 4'), with three access switches per building. Each access switch connects to two distribution switches with 1Gbps links (dotted lines labeled '1G'). On the right side of the diagram, there's a server farm containing six server icons connected to the core switches via a dedicated pair of switches labeled 'SRV-SW-1' and 'SRV-SW-2'. At the very top of the diagram is a cloud icon representing the internet, connected to both core switches through two firewall icons labeled 'FW-1' and 'FW-2'. A small legend in the bottom right corner indicates the line types and bandwidth: solid thick lines (40G), solid thin lines (10G), and dotted lines (1G). Each device is color-coded: core devices in blue, distribution in green, access in gray, servers in yellow, and security devices in red. Building names and network segments are labeled in text boxes with rounded corners.",
+      "contextual_relevance": "This network topology diagram visually represents the organization's IT infrastructure discussed in the document, helping network administrators understand the physical and logical layout of network components across campus buildings.",
+      "analysis": "The topology reveals a well-designed network with high availability in mind, implementing redundancy at all layers. The dual connections from each access layer to different distribution switches eliminate single points of failure. The bandwidth allocation follows best practices with higher capacity at the core (40G) and progressively lower bandwidth toward the edge (10G to distribution, 1G to access). The separate server farm connection directly to the core layer suggests prioritization of data center traffic, likely for internal applications and services. The network appears designed for a medium-to-large organization, possibly an educational campus or corporate environment with multiple buildings requiring robust interconnectivity.",
+      "visual_type": "network topology"
+    }}
+  ]
+}}
+
+---
+
+### **Example: UI Screen**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A screenshot of a dashboard interface from a network monitoring application. The screen has a dark gray background (#2A2A2A) with white and colored text elements. At the top is a horizontal navigation bar with menu items labeled 'Dashboard', 'Devices', 'Alerts', 'Reports', and 'Settings', with 'Dashboard' highlighted in blue indicating it's the active page. Below the navigation is a row of four summary boxes displaying key metrics: 'Total Devices: 156' (green), 'Online: 143' (blue), 'Warning: 8' (yellow), and 'Critical: 5' (red). Each box includes a small icon representing its metric. The main content area is divided into three panels. The left panel shows a pie chart breaking down device types by percentage (Servers 35%, Switches 25%, Access Points 20%, Workstations 15%, Other 5%), with a color key below it. The center panel displays a line graph tracking 'Network Traffic (Last 24 Hours)' with time on the x-axis (hourly intervals) and bandwidth usage (Mbps) on the y-axis, showing peak usage around 2 PM. The right panel contains a scrollable table titled 'Recent Alerts' with columns for Timestamp, Device, Severity, and Message. Five alert entries are visible, each row color-coded by severity level. At the bottom of the screen is a status bar showing 'Last updated: Today, 14:35' on the left side and 'User: admin@example.com' on the right side. A small notification bell icon in the top right corner shows a red badge with the number '13'.",
+      "contextual_relevance": "This UI screenshot illustrates the actual monitoring dashboard referenced in the document, helping users understand the interface layout and available information for network administration tasks.",
+      "analysis": "The dashboard employs a hierarchical information design, presenting summary metrics at the top for immediate status awareness, followed by deeper analytical visualizations. The color scheme follows conventional alert standards (green=good, yellow=warning, red=critical) for intuitive status recognition. The three-panel layout effectively balances infrastructure composition data (pie chart), performance trends (line graph), and actionable alerts (table), allowing administrators to quickly assess system health from multiple perspectives. The prominence of the alert panel suggests the software emphasizes proactive response to network issues, while the traffic graph aids in identifying usage patterns that might inform capacity planning.",
+      "visual_type": "UI screen"
+    }}
+  ]
+}}
+
+---
+
+### **Example: Safety Icon**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A standardized safety warning icon depicting electrical hazard. The icon follows ISO 7010 standards for safety signage with a triangular yellow background bordered in black. Within the triangle is a black symbol showing a lightning bolt (zigzag arrow pointing downward). The lightning bolt is centered within the triangle and occupies approximately 60% of the inner area. The yellow background uses the standard safety yellow color (Pantone 109C). The black border is approximately 5% of the triangle's height in thickness. Below the triangle is black text reading 'DANGER - HIGH VOLTAGE' in sans-serif capital letters. The entire sign is approximately square in overall proportion, with the text centered beneath the triangle. No additional graphics, colors, or design elements are present, maintaining compliance with international safety standards for hazard communication.",
+      "contextual_relevance": "This electrical hazard warning icon appears in the safety precautions section of the document, highlighting dangerous voltage points in the equipment that users must avoid when performing maintenance procedures.",
+      "analysis": "The icon follows standardized industrial safety conventions for maximum recognition across language barriers. The high contrast between yellow and black ensures visibility even in less-than-ideal lighting conditions. The use of the lightning bolt symbol is universally understood to represent electrical danger without requiring text explanation, though the additional text reinforces the specific nature of the hazard. This type of warning typically indicates voltages above 50V AC or 120V DC that could cause serious injury or death, suggesting the equipment described contains potentially lethal electrical components requiring qualified personnel for service.",
+      "visual_type": "safety icon"
+    }}
+  ]
+}}
+
+---
+
+### **Example: Tool Usage**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A detailed illustration demonstrating the proper technique for using a torque wrench on a flange bolt assembly. The image shows a person's hands (visible from wrists to fingertips) gripping a click-type torque wrench that is positioned on a hexagonal bolt head. The torque wrench is silver/chrome with a black handle and features a visible calibrated scale window displaying torque readings in both Nm and ft-lbs. The person's right hand grips the main body of the wrench while the left hand is positioned on the handle end. A directional arrow indicates the proper clockwise rotation. The bolt being tightened is part of a pipe flange connection, with the flange shown as a circular metal fitting with eight bolts arranged in a pattern around a gasket. Three small inset diagrams appear around the main illustration: the top inset shows a close-up of the torque setting adjustment with a lock ring; the middle inset demonstrates the incorrect technique (marked with a red X) of using an extension bar on the handle; and the bottom inset shows the proper perpendicular alignment of the wrench to the bolt axis (marked with a green checkmark). Text callouts point to key elements: 'Ensure square drive is fully engaged,' 'Apply steady pressure until click is heard,' and 'Maintain 90° angle to bolt axis.' A torque specification of '65 ± 3 Nm' appears in a yellow highlight box in the upper corner.",
+      "contextual_relevance": "This tool usage illustration appears in the maintenance procedures section of the document, providing visual guidance for the critical bolt-tightening process described in the adjacent torque specifications table.",
+      "analysis": "The illustration effectively communicates both the correct technique and potential errors when using a torque wrench, emphasizing precision in maintenance procedures. The inclusion of both correct and incorrect methods (with clear visual indicators) helps prevent common mistakes that could lead to equipment failure or inaccurate torque application. The detailed depiction of hand positioning demonstrates the importance of proper grip and leverage. The specific torque value (65 ± 3 Nm) suggests this illustration relates to a critical fastening procedure where consistent, accurate torque application is essential for operational integrity, likely for pressure-containing components or structural connections.",
+      "visual_type": "tool usage"
+    }}
+  ]
+}}
+
+---
+
+### **Example: Warning Sign**
+
+{{
+  "detected_visuals": [
+    {{
+      "visual_description": "A bright yellow rectangular warning sign with black border and text. The sign measures approximately 12 inches wide by 9 inches tall. At the top of the sign is a triangular hazard symbol containing an exclamation point (!). Below this symbol appears the word 'WARNING' in large, bold, black capital letters. The main body text, also in black but in a smaller font size, reads: 'LASER RADIATION - DO NOT STARE INTO BEAM. CLASS 3R LASER PRODUCT. MAX OUTPUT: 5mW, WAVELENGTH: 630-680nm'. At the bottom of the sign is a red and black symbol showing a laser beam emanating from a source and striking an eye, enclosed in a circle with a diagonal line through it (the universal 'prohibited' symbol). The sign has rounded corners and four small mounting holes, one in each corner. The entire sign has a glossy, reflective finish that would be visible in low light conditions.",
+      "contextual_relevance": "This warning sign illustration appears in the safety precautions chapter of the document, highlighting the specific laser hazards associated with the optical equipment being discussed in the technical manual.",
+      "analysis": "The sign follows international safety standards for laser warning signage, combining universal symbols with specific technical information. The inclusion of the laser class (3R) and specifications (5mW, 630-680nm) provides critical safety context—Class 3R lasers can cause eye damage with direct beam viewing but aren't typically hazardous to skin. The prohibition symbol specifically targeting eye exposure reinforces the primary danger. This level of detail suggests the equipment has moderate laser hazard potential requiring precautions but not full protective equipment, which would be consistent with certain calibration tools, alignment devices, or presentation equipment described in technical documentation.",
+      "visual_type": "warning sign"
+    }}
+  ]
+}}
+
+---
+
+## **Example: One Graph, No Photographs**
 
 
 {{
@@ -174,7 +353,7 @@ Below you will find **all nine examples** revised with more **elaborate and desc
 
 ---
 
-## **Example 4: Multiple Photographs and Graphs**
+## **Example: Multiple Photographs and Graphs**
 
 
 {{
@@ -197,7 +376,7 @@ Below you will find **all nine examples** revised with more **elaborate and desc
 
 ---
 
-## **Example 5: Mixed Scenario – Three Items**
+## **Example: Mixed Scenario – Three Items**
 
 
 {{
@@ -226,7 +405,7 @@ Below you will find **all nine examples** revised with more **elaborate and desc
 
 ---
 
-## **Example 6: One Infographic, No Photos or Graphs**
+## **Example: One Infographic, No Photos or Graphs**
 
 
 {{
@@ -243,7 +422,7 @@ Below you will find **all nine examples** revised with more **elaborate and desc
 
 ---
 
-## **Example 7: Mixed – Photo, Graph, and Infographic**
+## **Example: Mixed – Photo, Graph, and Infographic**
 
 
 {{
@@ -272,7 +451,7 @@ Below you will find **all nine examples** revised with more **elaborate and desc
 
 ---
 
-## **Example 8: A Decorative Illustration (Generic)**
+## **Example: A Decorative Illustration (Generic)**
 
 
 {{
@@ -289,7 +468,7 @@ Below you will find **all nine examples** revised with more **elaborate and desc
 
 ---
 
-## **Example 9: Icon Collage (Generic)**
+## **Example: Icon Collage (Generic)**
 
 
 {{
