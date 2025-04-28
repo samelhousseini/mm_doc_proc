@@ -77,7 +77,7 @@ class PDFCUIngestionPipeline(PDFIngestionPipeline):
         """
         page = self.cu_results[page_number]
         console.print(f">>> Reading in {page}")
-        text = read_file(page)[0]
+        text = read_file(page)
 
         if self.processing_pipeline_config.process_text:
             console.print("Processing text with GPT...")
