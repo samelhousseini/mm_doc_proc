@@ -239,10 +239,27 @@ class ContentAnalyzer:
                     summary = fields.get("Summary", {}).get("valueString", "")
                     if summary: markdown_output.append(f"**Summary:**\n{summary}\n")
 
-                    # ... (add other fields as needed, similar to the client method) ...
-
                     page_keywords = fields.get("PageKeywords", {}).get("valueString", "")
                     if page_keywords: markdown_output.append(f"**Keywords:** `{page_keywords}`\n")
+
+                    figure_ids = fields.get("FigureIds", {}).get("valueString", "")
+                    if figure_ids: markdown_output.append(f"**Figure IDs:** `{figure_ids}`\n")
+
+                    figure_captions = fields.get("FigureCaptions", {}).get("valueString", "")
+                    if figure_captions: markdown_output.append(f"**Figure Captions:** {figure_captions}\n")
+
+                    figure_type = fields.get("FigureType", {}).get("valueString", "")
+                    if figure_type: markdown_output.append(f"**Figure Type:** `{figure_type}`\n")
+
+                    figure_descriptions = fields.get("FigureDescriptions", {}).get("valueString", "")
+                    if figure_descriptions: markdown_output.append(f"**Figure Descriptions:**\n{figure_descriptions}\n")
+
+                    figure_analyses = fields.get("FigureAnalyses", {}).get("valueString", "")
+                    if figure_analyses: markdown_output.append(f"**Figure Analyses:**\n{figure_analyses}\n")
+
+                    important_warnings = fields.get("ImportantWarnings", {}).get("valueString", "")
+                    if important_warnings: markdown_output.append(f"**Important Warnings:**\n{important_warnings}\n")
+
 
                 else:
                     logging.warning(f"No 'contents' found in result for {file_name_base}. Adding basic info.")

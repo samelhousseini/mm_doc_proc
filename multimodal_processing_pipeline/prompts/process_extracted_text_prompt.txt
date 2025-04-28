@@ -35,10 +35,15 @@ Your goal:
    - If you detect table-like layouts or bullet/numbered lists, reformat them into **Markdown tables** or bullet/numbered lists.  
    - Make sure row/column headers and data points remain in the correct alignment and order.
 
-5. **No Extra Commentary**  
-   - The final output should **only** contain the rearranged text—no additional explanations, disclaimers, or editorial notes.
+5. **Graphs and Diagrams (e.g., Process Flows)**
+   - If the image contains a graph, flowchart, or diagram (like a business process), analyze the connections and flow.
+   - You **MUST** try to reconstruct the sequence, relationships, or steps described by the graph in a clear, textual format (e.g., using nested lists, step-by-step descriptions, or describing connections like "A connects to B and C").
+   - The goal is to convey the *logic* of the graph to someone who cannot see the image, using only the extracted text elements arranged logically.
 
-6. **Final Check**  
+6. **No Extra Commentary**  
+   - The final output should **only** contain the rearranged text—no additional explanations, disclaimers, or editorial notes.  
+
+7. **Final Check**  
    - Review your output for clarity and coherence, ensuring it matches the layout as faithfully as possible.  
    - Confirm that every word from the extracted text appears somewhere in your reflowed version, unless you’re certain it was an OCR artifact.  
    - Retain any original line designations like “step 1,” “step 2,” etc., in the right order, and keep them next to the relevant instructions.

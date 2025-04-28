@@ -117,30 +117,31 @@ class PDFCUIngestionPipeline(PDFIngestionPipeline):
                     
                     self.input_file_paths.append(page_image_path)
 
-        try:
-            analyzer_id = "cu_page_image_analyzer"
-            # Construct absolute path for the schema
-            script_dir = get_resource_path(content_understanding, 'analyzer')
-            analyzer_schema_path = os.path.join(script_dir, 'analyzer', f"{analyzer_id}.json")
+        if len(self.input_file_paths) > 0:
+            try:
+                analyzer_id = "cu_page_image_analyzer"
+                # Construct absolute path for the schema
+                script_dir = get_resource_path(content_understanding, 'analyzer')
+                analyzer_schema_path = os.path.join(script_dir, 'analyzer', f"{analyzer_id}.json")
 
-            analyzer = ContentAnalyzer(
-                analyzer_id=analyzer_id,
-                analyzer_schema_path=analyzer_schema_path
-            )
+                analyzer = ContentAnalyzer(
+                    analyzer_id=analyzer_id,
+                    analyzer_schema_path=analyzer_schema_path
+                )
 
-            # Run the analysis process
-            success, temp_cu_results = analyzer.run_analysis(
-                input_file_paths=self.input_file_paths
-            )
-        except Exception as e:
-            console.print(f"[bold red]Error processing PDF: {e}[/bold red]")
-            raise e
+                # Run the analysis process
+                success, temp_cu_results = analyzer.run_analysis(
+                    input_file_paths=self.input_file_paths
+                )
+            except Exception as e:
+                console.print(f"[bold red]Error processing PDF: {e}[/bold red]")
+                raise e
 
-        for r in temp_cu_results:
-            # Get the page number from the filename
-            page_number = int(re.search(r"page_(\d+)", r).group(1))
-            print(f"*********** Processing page number {page_number} from file {r}")
-            self.cu_results[page_number] = temp_cu_results[r]
+            for r in temp_cu_results:
+                # Get the page number from the filename
+                page_number = int(re.search(r"page_(\d+)", r).group(1))
+                print(f"*********** Processing page number {page_number} from file {r}")
+                self.cu_results[page_number] = temp_cu_results[r]
 
 
     def process_pdf(self) -> DocumentContent:
